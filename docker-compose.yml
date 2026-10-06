@@ -1,0 +1,50 @@
+services:
+  legacy-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: legacy
+    ports: ["5433:5432"]
+    volumes:
+      - ./legacy/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - legacy-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d legacy"]
+      interval: 5s
+      retries: 10
+
+  cloud-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cloud
+    ports: ["5434:5432"]
+    volumes:
+      - ./cloud/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - cloud-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cloud"]
+      interval: 5s
+      retries: 10
+
+  legacy-app:
+    build: ./legacy
+    ports: ["5000:5000"]
+    depends_on:
+      legacy-db:
+        condition: service_healthy
+
+  cloud-api:
+    build: ./cloud/api
+    ports: ["8000:8000"]
+    environment:
+      CLOUD_DB_URL: postgresql://postgres:postgres@cloud-db:5432/cloud
+    depends_on:
+      cloud-db:
+        condition: service_healthy
+
+volumes:
+  legacy-data:
+  cloud-data:
