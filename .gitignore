@@ -2,3 +2,5 @@
 __pycache__/
 legacy-migration-postgres-done/
 legacy-migration-sqlite-backup/
+
+.pytest_cache/

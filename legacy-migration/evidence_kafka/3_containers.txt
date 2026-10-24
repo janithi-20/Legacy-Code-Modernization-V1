@@ -1,0 +1,5 @@
+﻿NAME        IMAGE                          COMMAND                  SERVICE     CREATED          STATUS          PORTS
+cloud_db    postgres:16                    "docker-entrypoint.sΓÇª"   cloud_db    23 hours ago     Up 54 minutes   0.0.0.0:5434->5432/tcp, [::]:5434->5432/tcp
+connect     quay.io/debezium/connect:2.7   "/docker-entrypoint.ΓÇª"   connect     27 minutes ago   Up 27 minutes   0.0.0.0:8083->8083/tcp, [::]:8083->8083/tcp
+kafka       apache/kafka:3.8.0             "/__cacert_entrypoinΓÇª"   kafka       45 minutes ago   Up 45 minutes   0.0.0.0:9092->9092/tcp, [::]:9092->9092/tcp
+legacy_db   postgres:16                    "docker-entrypoint.sΓÇª"   legacy_db   23 hours ago     Up 54 minutes   0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
