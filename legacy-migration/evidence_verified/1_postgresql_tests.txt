@@ -1,0 +1,17 @@
+E1 - PostgreSQL automated tests
+Verified: 2026-10-25
+Command: .venv\Scripts\python.exe -m pytest -q
+Environment: Docker PostgreSQL 16 (legacy_db and cloud_db)
+Result: 10 passed in 1.79s
+Exit code: 0
+
+Coverage:
+- fee calculation and rounding
+- legacy trade persistence
+- CDC replication and reconciliation
+- duplicate and out-of-order event handling
+- consumer resume behavior
+- missing-record detection
+- shadow validation gate
+- canary gate
+- cloud outage fallback and rollback

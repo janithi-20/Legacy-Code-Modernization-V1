@@ -1,0 +1,15 @@
+E4 - Kafka and Debezium CDC
+Verified: 2026-10-25
+Command: .venv\Scripts\python.exe demo_kafka.py
+Result: exit code 0
+Duration: 18.30 seconds
+
+Measured result:
+- Direct Kafka flow: 5 of 5 messages received and reconciled
+- Debezium CDC initial apply: 20 of 20 trades
+- Consumer outage: 10 trades became temporarily missing
+- Consumer restart: 10 of 10 trades applied
+- Full replay: 0 changes; duplicate delivery was ignored
+- Final reconciliation: missing=[], extra=[], different=[]
+- Final trade count: 30
+- Final result: KAFKA CDC CHECKS PASSED

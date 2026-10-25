@@ -1,0 +1,13 @@
+E2 - Normal migration demo
+Verified: 2026-10-25
+Command: .venv\Scripts\python.exe demo.py
+Result: exit code 0
+Duration: 1.80 seconds
+
+Measured result:
+- CDC lag: 0
+- Shadow comparisons: 70 total, 70 matched, 0 mismatched, 0 errors
+- Canary stages reached: 5%, 25%, 50%, 100%
+- Reconciliation: missing=[], extra=[], different=[]
+- Trades preserved after simulated cloud failure and rollback: 105 of 105
+- Final result: ALL CHECKS PASSED
