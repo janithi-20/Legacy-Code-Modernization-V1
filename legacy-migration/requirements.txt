@@ -1,0 +1,4 @@
+pytest
+psycopg[binary]
+confluent-kafka
+streamlit

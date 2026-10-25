@@ -1,0 +1,1 @@
+﻿{"name":"legacy-trades-connector","connector":{"state":"RUNNING","worker_id":"172.18.0.5:8083"},"tasks":[{"id":0,"state":"RUNNING","worker_id":"172.18.0.5:8083"}],"type":"source"}
