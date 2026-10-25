@@ -1,0 +1,11 @@
+﻿CLOUD (Amazon RDS PostgreSQL), Kafka CDC demo, run on 10/25/2026 16:12:59
+1. Start the Kafka consumer at the end of the topic
+2. Legacy accepts 20 trades; Debezium streams them through Kafka
+   applied: 20 | reconcile: {'missing': [], 'extra': [], 'different': []}
+3. Consumer stopped; legacy accepts 10 more trades
+   cloud is missing 10 trades
+4. Consumer restarts and resumes from its committed offset
+   applied: 10 | reconcile: {'missing': [], 'extra': [], 'different': []}
+5. Replay every event again (duplicate delivery)
+   changed: 0 | reconcile: {'missing': [], 'extra': [], 'different': []} | trades: 30
+KAFKA CDC CHECKS PASSED
