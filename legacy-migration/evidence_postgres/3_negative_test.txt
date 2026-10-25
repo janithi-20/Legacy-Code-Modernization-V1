@@ -1,8 +1,0 @@
-﻿POSTGRES (Docker, local) negative test, run on 10/23/2026 18:37:15
-1. Legacy accepts trades
-2. CDC copies to cloud
-   lag = 0 {'missing': [], 'extra': [], 'different': []}
-3. Shadow validation
-   {'total': 30, 'match': 15, 'mismatch': 15, 'errors': 0}
-4. Canary rollout
-   BLOCKED: cutover not permitted -> {'total': 30, 'match': 15, 'mismatch': 15, 'errors': 0} ["{'symbol': 'ABC', 'quantity': 100, 'price': '25.50'}: legacy=('2550.00', '1.28') cloud=('2550.00', '1.27')"]
