@@ -1,0 +1,16 @@
+E3 - Negative validation
+Verified: 2026-10-25
+Command: .venv\Scripts\python.exe demo.py --negative-test
+Result: exit code 0 for the expected blocked-demo outcome
+Duration: 0.64 seconds
+
+Measured result:
+- Shadow comparisons: 30 total
+- Matches: 15
+- Mismatches: 15
+- Errors: 0
+- Example fee difference: legacy 1.28 versus cloud 1.27
+- Canary result: BLOCKED before traffic moved
+
+This is a successful negative test: the injected defect was detected and
+prevented cutover.

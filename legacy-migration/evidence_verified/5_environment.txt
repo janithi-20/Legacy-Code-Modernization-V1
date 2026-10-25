@@ -1,0 +1,23 @@
+E5 - Runtime environment
+Verified: 2026-10-25
+
+Running services:
+- legacy_db: PostgreSQL 16, localhost:5433
+- cloud_db: PostgreSQL 16, localhost:5434
+- kafka: Apache Kafka 3.8.0, localhost:9092
+- connect: Debezium Connect 2.7, localhost:8083
+
+Connector:
+- Name: legacy-trades-connector
+- Connector state: RUNNING
+- Task 0 state: RUNNING
+
+Dashboard:
+- dashboard_app.py py_compile exit code: 0
+- Interactive dashboard scenario screenshots were not collected.
+
+Not verified:
+- Amazon RDS execution
+- Load, throughput, latency, or high-concurrency testing
+- Production network-failure behavior
+- Formal security review
