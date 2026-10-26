@@ -1,0 +1,41 @@
+E6 - Dashboard interactive scenarios
+Captured: 2026-10-26
+Application: dashboard/dashboard_app.py
+URL: http://localhost:8501
+
+Screenshots:
+
+1. Migration Dashboard.png
+   - Legacy trades: 30
+   - Cloud trades: 30
+   - Missing in cloud: 0
+   - Different rows: 0
+   - Debezium connector: RUNNING
+   - Replication slot: active
+   - Shadow validation: 30 compared, 30 matched, 0 mismatched
+   - Decision: CUTOVER ALLOWED
+
+2. Shadow validation.png
+   - Injected cloud rounding bug enabled
+   - Shadow validation: 30 compared, 15 matched, 15 mismatched
+   - Decision: CUTOVER BLOCKED
+
+3. Canary rollout.png
+   - Debezium Connect was stopped temporarily for this capture
+   - Connector status: UNREACHABLE
+   - Replication slot: inactive
+   - Connector and slot checks failed
+   - Decision: CUTOVER BLOCKED
+
+4. Cutover decision.png
+   - One cloud trade was deliberately deleted for this capture
+   - Legacy trades: 30
+   - Cloud trades: 29
+   - Missing in cloud: 1
+   - Different rows: 0
+   - Reconciliation check failed
+   - Decision: CUTOVER BLOCKED
+
+After the captures, demo.py was run successfully to restore a clean,
+reconciled local demo state. The screenshots are controlled local PoC
+evidence and do not represent a production traffic router.
