@@ -11,6 +11,11 @@ services:
     command: ["postgres", "-c", "wal_level=logical"]
     volumes:
       - legacy_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d legacy"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   cloud_db:
     image: postgres:16
@@ -24,6 +29,11 @@ services:
     command: ["postgres", "-c", "wal_level=logical"]
     volumes:
       - cloud_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cloud"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   kafka:
     image: apache/kafka:3.8.0
@@ -64,6 +74,30 @@ services:
       OFFSET_STORAGE_REPLICATION_FACTOR: "1"
       STATUS_STORAGE_REPLICATION_FACTOR: "1"
       HEAP_OPTS: "-Xms128M -Xmx512M"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8083/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  dashboard:
+    build:
+      context: ./legacy-migration
+    container_name: migration_dashboard
+    restart: on-failure
+    depends_on:
+      legacy_db:
+        condition: service_healthy
+      cloud_db:
+        condition: service_healthy
+    environment:
+      LEGACY_DSN: postgresql://postgres:postgres@legacy_db:5432/legacy?connect_timeout=5
+      CLOUD_DSN: postgresql://postgres:postgres@cloud_db:5432/cloud?connect_timeout=5
+      CONNECTOR_URL: http://connect:8083/connectors/legacy-trades-connector/status
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME:-admin}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:-migration}
+    ports:
+      - "8501:8501"
 
 volumes:
   legacy_data:

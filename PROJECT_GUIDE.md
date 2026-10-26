@@ -274,16 +274,16 @@ Evidence:
 
 ## 5. Dashboard user interface
 
-The dashboard is implemented in:
+The Streamlit frontend is implemented in:
 
-`legacy-migration/dashboard/dashboard_app.py`
+`legacy-migration/frontend/dashboard_app.py`
 
 It is started with:
 
 ```powershell
 cd "D:\Transition X - V1\Legacy-Code-Modernization-V1\legacy-migration"
 .\.venv\Scripts\Activate.ps1
-python -m streamlit run .\dashboard\dashboard_app.py
+python -m streamlit run .\frontend\dashboard_app.py
 ```
 
 Open:
@@ -571,4 +571,3 @@ The accurate statement is:
 - Perform a formal security review.
 - If AWS is required, run the tests against an actual RDS endpoint and retain
   redacted RDS, network, security-group, and test-output evidence.
-
