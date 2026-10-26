@@ -7,6 +7,42 @@ dashboard.
 
 The commands below use Windows PowerShell.
 
+## Quick start
+
+From the repository root, with Docker Desktop running:
+
+```powershell
+cd "D:\Transition X - V1\Legacy-Code-Modernization-V1"
+docker compose up --build -d
+docker compose ps
+```
+
+Wait until the database services are healthy, then open
+`http://localhost:8501`. Sign in with the default local credentials:
+
+```text
+Username: admin
+Password: migration
+```
+
+The login page is branded **Bridgeline**. To view startup logs:
+
+```powershell
+docker compose logs -f dashboard
+```
+
+Press `Ctrl+C` to stop viewing logs. To stop the project:
+
+```powershell
+docker compose down
+```
+
+If you change the frontend code, rebuild the dashboard container:
+
+```powershell
+docker compose up --build -d dashboard
+```
+
 ## Legacy modernization concepts used
 
 This project demonstrates four important legacy-code modernization concepts:
@@ -194,13 +230,24 @@ The recommended path starts all required services and the dashboard through
 Docker Compose:
 
 ```powershell
-docker compose up --build
+docker compose up --build -d
 ```
 
 Open `http://localhost:8501` and sign in with `admin` / `migration`, unless
 you override `DASHBOARD_USERNAME` and `DASHBOARD_PASSWORD`. Compose waits for
 both PostgreSQL containers, initializes their tables and demo rows, and
-restarts the dashboard if startup fails.
+restarts the dashboard if startup fails. Check the service status with:
+
+```powershell
+docker compose ps
+```
+
+If you changed `legacy-migration/frontend/dashboard_app.py`, rebuild the
+dashboard container:
+
+```powershell
+docker compose up --build -d dashboard
+```
 
 From `legacy-migration`:
 
@@ -228,6 +275,38 @@ python -m streamlit run .\frontend\dashboard_app.py `
 
 The dashboard displays reconciliation, Debezium connector status,
 replication-slot status, shadow validation, and the canary decision.
+
+### Direct Python development run
+
+Use this flow when you want Streamlit to reload while editing the frontend.
+Start the database services from the repository root:
+
+```powershell
+cd "D:\Transition X - V1\Legacy-Code-Modernization-V1"
+docker compose up -d legacy_db cloud_db
+cd ".\legacy-migration"
+.\.venv\Scripts\python.exe -m pip install -r .\requirements.txt
+```
+
+Set these variables in the same PowerShell window:
+
+```powershell
+$env:LEGACY_DSN = "postgresql://postgres:postgres@localhost:5433/legacy?connect_timeout=5"
+$env:CLOUD_DSN = "postgresql://postgres:postgres@localhost:5434/cloud?connect_timeout=5"
+$env:CONNECTOR_URL = "http://localhost:8083/connectors/legacy-trades-connector/status"
+$env:DASHBOARD_USERNAME = "admin"
+$env:DASHBOARD_PASSWORD = "migration"
+```
+
+Initialize the databases and start the frontend:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.bootstrap
+.\.venv\Scripts\python.exe -m streamlit run .\frontend\dashboard_app.py --server.address localhost --server.port 8501
+```
+
+Open `http://localhost:8501`. Press `Ctrl+C` to stop the local Streamlit
+process.
 
 The dashboard opens with a login screen. For the local demo, the default
 credentials are `admin` / `migration`. Set these environment variables before
