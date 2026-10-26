@@ -48,7 +48,8 @@ Docker Desktop must be running before starting the project.
 | `legacy-migration/requirements.txt` | Python dependencies |
 | `legacy-migration/demo.py` | Local migration, validation, canary, and rollback demo |
 | `legacy-migration/demo_kafka.py` | Kafka and Debezium CDC demos |
-| `legacy-migration/dashboard/dashboard_app.py` | Streamlit dashboard |
+| `legacy-migration/frontend/dashboard_app.py` | Streamlit frontend |
+| `legacy-migration/backend/` | Authentication, database, monitoring, and startup services |
 | `legacy-migration/tests/test_migration.py` | Automated tests |
 | `legacy-migration/debezium/legacy-connector.json` | Debezium connector configuration |
 
@@ -189,13 +190,25 @@ KAFKA CDC CHECKS PASSED
 
 ## Run the dashboard
 
+The recommended path starts all required services and the dashboard through
+Docker Compose:
+
+```powershell
+docker compose up --build
+```
+
+Open `http://localhost:8501` and sign in with `admin` / `migration`, unless
+you override `DASHBOARD_USERNAME` and `DASHBOARD_PASSWORD`. Compose waits for
+both PostgreSQL containers, initializes their tables and demo rows, and
+restarts the dashboard if startup fails.
+
 From `legacy-migration`:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 $env:LEGACY_DSN = "postgresql://postgres:postgres@localhost:5433/legacy?connect_timeout=5"
 $env:CLOUD_DSN = "postgresql://postgres:postgres@localhost:5434/cloud?connect_timeout=5"
-python -m streamlit run .\dashboard\dashboard_app.py
+python -m streamlit run .\frontend\dashboard_app.py
 ```
 
 Open:
@@ -207,7 +220,7 @@ http://localhost:8501
 For a headless launch:
 
 ```powershell
-python -m streamlit run .\dashboard\dashboard_app.py `
+python -m streamlit run .\frontend\dashboard_app.py `
   --server.headless true `
   --server.address localhost `
   --server.port 8501
@@ -215,6 +228,15 @@ python -m streamlit run .\dashboard\dashboard_app.py `
 
 The dashboard displays reconciliation, Debezium connector status,
 replication-slot status, shadow validation, and the canary decision.
+
+The dashboard opens with a login screen. For the local demo, the default
+credentials are `admin` / `migration`. Set these environment variables before
+starting Streamlit to use different credentials:
+
+```powershell
+$env:DASHBOARD_USERNAME = "your-user"
+$env:DASHBOARD_PASSWORD = "your-password"
+```
 
 ## Run automated tests
 
@@ -285,5 +307,5 @@ The connector must use the Docker hostname `legacy_db`, not `localhost`.
 ```powershell
 cd "D:\Transition X - V1\Legacy-Code-Modernization-V1\legacy-migration"
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m py_compile .\dashboard\dashboard_app.py
+.\.venv\Scripts\python.exe -m py_compile .\frontend\dashboard_app.py
 ```
