@@ -26,6 +26,266 @@ def login():
     st.markdown(
         """
         <style>
+        /* Login page theme: edit these variables to customize the palette. */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --login-page: #F3F5F9;
+            --login-ink: #0F172A;
+            --login-muted: #5B6475;
+            --login-border: #CBD2E0;
+            --login-blue: #2F5BEA;
+            --login-blue-dark: #2446C9;
+            --login-focus: #9DB4FF;
+        }
+
+        [data-testid="stHeader"],
+        [data-testid="stToolbar"],
+        [data-testid="stDeployButton"],
+        footer {
+            display: none;
+        }
+
+        html,
+        body,
+        [data-testid="stAppViewContainer"] {
+            background: var(--login-page);
+            font-family: 'Inter', sans-serif;
+        }
+
+        [data-testid="stMain"] {
+            min-height: 100vh;
+            padding: 0 8px;
+        }
+
+        [data-testid="stMainBlockContainer"] {
+            min-height: 100vh;
+            max-width: none;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] {
+            width: min(100%, 420px);
+            align-items: center;
+        }
+
+        [data-testid="stLayoutWrapper"] {
+            width: min(100%, 420px) !important;
+            margin: auto !important;
+        }
+
+        /* Card, heading, fields, and button. */
+        [data-testid="stForm"] {
+            width: min(100%, 420px);
+            box-sizing: border-box;
+            padding: 36px 32px;
+            border: 0;
+            border-radius: 20px;
+            background: #FFFFFF;
+            box-shadow: 0 8px 30px rgba(15, 27, 61, 0.10);
+        }
+
+        [data-testid="stForm"] > [data-testid="stVerticalBlock"] {
+            gap: 0 !important;
+        }
+
+        .login-heading h1 {
+            margin: 0 0 8px;
+            color: var(--login-ink);
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            line-height: 1.25;
+            text-align: center;
+        }
+
+        .login-heading p {
+            margin: 0 0 28px;
+            color: var(--login-muted);
+            font-size: 15px;
+            line-height: 1.45;
+            text-align: center;
+        }
+
+        [data-testid="stForm"] label {
+            color: var(--login-ink);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        [data-testid="stForm"] [data-testid="stTextInput"] {
+            margin-bottom: 20px;
+        }
+
+        [data-testid="stForm"] [data-testid="stTextInput"] input {
+            box-sizing: border-box;
+            height: 48px;
+            margin-top: 6px;
+            border: 1.5px solid var(--login-border);
+            border-radius: 12px;
+            background: #FFFFFF !important;
+            color: var(--login-ink) !important;
+            caret-color: var(--login-ink) !important;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+        }
+
+        [data-testid="stForm"] input::placeholder {
+            color: #7A7F87 !important;
+            opacity: 1 !important;
+        }
+
+        [data-testid="stForm"] [data-testid="stTextInput"] input:focus {
+            border-color: var(--login-focus) !important;
+            box-shadow: 0 0 0 3px rgba(157, 180, 255, 0.28) !important;
+        }
+
+        /* Keep Streamlit's password behavior while displaying a text toggle. */
+        [data-testid="stForm"] [data-testid="stTextInput"]:has(input[type="password"]) button {
+            color: var(--login-blue-dark) !important;
+            font-size: 0 !important;
+            font-weight: 600;
+        }
+
+        [data-testid="stForm"] [data-testid="stTextInput"]:has(input[type="password"]) button::after {
+            content: "Show";
+            font-size: 14px;
+        }
+
+        [data-testid="stForm"] [data-testid="stTextInput"]:has(input[type="text"]) button::after {
+            content: "Hide";
+        }
+
+        [data-testid="stFormSubmitButton"] {
+            width: 100% !important;
+        }
+
+        [data-testid="stFormSubmitButton"] button {
+            width: 100% !important;
+            height: 50px;
+            margin-top: 0;
+            border: 0;
+            border-radius: 12px;
+            background: var(--login-blue);
+            color: #FFFFFF;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        [data-testid="stBaseButton-primaryFormSubmit"] {
+            width: 100% !important;
+        }
+
+        [kind="primaryFormSubmit"] {
+            width: 100% !important;
+        }
+
+        [data-testid="stFormSubmitButton"] button:hover {
+            border: 0;
+            background: var(--login-blue-dark);
+        }
+
+        .login-error {
+            margin-top: 16px;
+            padding: 12px 14px;
+            border: 1px solid #F4B8B1;
+            border-radius: 12px;
+            background: #FDE8E6;
+            color: #8F2217;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .login-help {
+            margin-top: 18px;
+            color: var(--login-muted);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .login-help a {
+            color: var(--login-blue-dark);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .login-footer {
+            margin-top: 10px;
+            color: var(--login-muted);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        @media (max-width: 800px) {
+            [data-testid="stMainBlockContainer"] {
+                padding: 8px;
+            }
+
+            [data-testid="stForm"] {
+                padding: 36px 24px;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.form("login_form"):
+        st.markdown(
+            """
+            <div class="login-heading">
+                <h1>Welcome</h1>
+                <p>Sign in to access the migration control dashboard.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        entered_username = st.text_input(
+            "Username", placeholder="Enter your username", autocomplete="username"
+        )
+        entered_password = st.text_input(
+            "Password",
+            type="password",
+            placeholder="Enter your password",
+            autocomplete="current-password",
+        )
+        submitted = st.form_submit_button(
+            "Sign in", type="primary", use_container_width=True
+        )
+        if submitted:
+            if credentials_match(entered_username, entered_password):
+                st.session_state["authenticated"] = True
+                st.rerun()
+            st.markdown(
+                '<div class="login-error" role="alert">'
+                "Incorrect username or password. Please try again."
+                "</div>",
+                unsafe_allow_html=True,
+            )
+        st.markdown(
+            """
+            <div class="login-help">
+                Can't sign in? <a href="mailto:support@example.com">Contact us</a>
+            </div>
+            <div class="login-footer">Authorized team members only.</div>
+            """,
+            unsafe_allow_html=True,
+        )
+    return False
+
+
+def legacy_login():
+    if st.session_state.get("authenticated", False):
+        return True
+
+    st.markdown(
+        """
+        <style>
         [data-testid="stHeader"], [data-testid="stToolbar"] {
             display: none;
         }
@@ -147,17 +407,19 @@ def login():
             width: min(100%, 28rem);
         }
 
-        .login-heading h2 {
+        .login-heading h2 {                                  
             margin: 0 0 0.45rem;
             color: #17213a;
             font-size: 1.55rem;
             letter-spacing: -0.03em;
+            text-align: center;
         }
 
         .login-heading p {
             margin: 0 0 1.25rem;
             color: #69758b;
             font-size: 0.85rem;
+            text-align: center;
         }
 
         [data-testid="stForm"] {
@@ -178,8 +440,15 @@ def login():
             height: 2.65rem;
             border: 1px solid #d5dce9;
             border-radius: 0.65rem;
-            color: #17213a;
+            background: #ffffff !important;
+            color: #17213a !important;
+            caret-color: #17213a !important;
             font-size: 0.85rem;
+        }
+
+        [data-testid="stForm"] input::placeholder {
+            color: #7a8598 !important;
+            opacity: 1 !important;
         }
 
         [data-testid="stForm"] input:focus {
