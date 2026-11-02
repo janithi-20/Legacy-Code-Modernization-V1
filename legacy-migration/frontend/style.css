@@ -1,0 +1,708 @@
+.block-container {
+    padding-top: 1.5rem;
+    max-width: 1250px;
+}
+
+header[data-testid="stHeader"] {
+    background: transparent;
+}
+
+#MainMenu,
+footer {
+    visibility: hidden;
+}
+
+.hero {
+    background: linear-gradient(120deg, #0f172a 0%, #1e3a8a 55%, #6d28d9 100%);
+    border-radius: 20px;
+    padding: 28px 34px;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 10px 40px rgba(79, 70, 229, 0.35);
+    margin-bottom: 22px;
+}
+
+.hero h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    color: #fff;
+}
+
+.hero p {
+    margin: 6px 0 0;
+    opacity: 0.85;
+    font-size: 0.95rem;
+    max-width: 640px;
+}
+
+.verdict {
+    padding: 14px 26px;
+    border-radius: 999px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    font-size: 1.05rem;
+    white-space: nowrap;
+    color: #fff;
+}
+
+.verdict.ok {
+    background: #16a34a;
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.25);
+}
+
+.verdict.bad {
+    background: #dc2626;
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.25);
+}
+
+.sec {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 28px 0 12px;
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sec .bar {
+    width: 5px;
+    height: 22px;
+    border-radius: 3px;
+    background: linear-gradient(#38bdf8, #a78bfa);
+}
+
+.kpi {
+    background: linear-gradient(145deg, #111827, #1f2937);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 18px 20px 16px 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+.kpi::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: var(--c);
+}
+
+.kpi .lab {
+    color: #94a3b8;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+}
+
+.kpi .val {
+    font-size: 2.3rem;
+    font-weight: 800;
+    color: #f8fafc;
+    line-height: 1.15;
+}
+
+.kpi .sub {
+    color: #64748b;
+    font-size: 0.78rem;
+}
+
+.pipe {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.node {
+    flex: 1;
+    min-width: 150px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 16px 10px;
+    text-align: center;
+}
+
+.node .ico {
+    font-size: 1.8rem;
+}
+
+.node .nm {
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-top: 4px;
+}
+
+.node .st {
+    font-size: 0.76rem;
+    margin-top: 8px;
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.node .sub {
+    color: #64748b;
+    font-size: 0.74rem;
+    margin-top: 8px;
+}
+
+.st.ok {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.st.bad {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.st.warn {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
+.st.idle {
+    background: rgba(148, 163, 184, 0.15);
+    color: #cbd5e1;
+}
+
+.arrow {
+    align-self: center;
+    font-size: 1.5rem;
+    color: #38bdf8;
+}
+
+.donut {
+    width: 170px;
+    height: 170px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    margin: 6px auto;
+}
+
+.hole {
+    width: 126px;
+    height: 126px;
+    border-radius: 50%;
+    background: #0b1020;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.hole b {
+    font-size: 2rem;
+    color: #f8fafc;
+}
+
+.hole span {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.chk {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.chk .dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.chk.ok {
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.chk.ok .dot {
+    background: #16a34a;
+}
+
+.chk.bad {
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.chk.bad .dot {
+    background: #dc2626;
+}
+
+.stepper {
+    display: flex;
+    align-items: center;
+    margin: 8px 0 14px;
+}
+
+.stepper .c {
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    border: 2px solid #334155;
+    color: #94a3b8;
+    background: #0f172a;
+}
+
+.stepper .done .c {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+.stepper .cur .c {
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    border-color: #a78bfa;
+    color: #fff;
+    box-shadow: 0 0 0 6px rgba(139, 92, 246, 0.25);
+}
+
+.stepper .line {
+    flex: 1;
+    height: 3px;
+    background: #334155;
+    margin: 0 6px;
+}
+
+.stButton > button,
+div[data-testid="stButton"] > button {
+    border-radius: 12px;
+    font-weight: 700;
+    border: 0;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: #fff;
+    padding: 0.55rem 1.3rem;
+}
+
+.stButton > button:hover,
+div[data-testid="stButton"] > button:hover {
+    filter: brightness(1.15);
+    color: #fff;
+}
+
+.sidebar-spacer {
+    min-height: 120px;
+}
+
+.st-key-logout_btn button {
+    background: #dc2626;
+}
+
+.st-key-logout_btn button:hover {
+    background: #b91c1c;
+}
+
+.stApp:has(.st-key-login-page) {
+    background: #f3f5f9;
+}
+
+.stApp:has(.st-key-login-page) header {
+    background: transparent;
+}
+
+.stApp:has(.st-key-login-page) .block-container {
+    max-width: none;
+    padding: 0;
+}
+
+.st-key-login-page {
+    min-height: 100vh;
+    box-sizing: border-box;
+    background: #f3f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+}
+
+.st-key-login-page > div {
+    width: 100%;
+}
+
+.st-key-login-page [data-testid="column"] {
+    padding: 0;
+}
+
+.login-panel {
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 48px 9%;
+    display: flex;
+    flex-direction: column;
+}
+
+.login-panel--brand {
+    background: #101d43;
+    color: #fff;
+    justify-content: space-between;
+}
+
+.login-panel--form {
+    background: #f3f5f9;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-logo {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.login-logo-mark {
+    width: 35px;
+    height: 35px;
+    border-radius: 9px;
+    background: #5579f5;
+    display: grid;
+    place-items: center;
+    font-size: 1.45rem;
+    font-weight: 400;
+}
+
+.login-copy {
+    max-width: 470px;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+.login-copy h1 {
+    font-size: 2.55rem;
+    line-height: 1.06;
+    letter-spacing: -0.04em;
+    margin: 0 0 18px;
+    color: #fff;
+}
+
+.login-copy p {
+    font-size: 0.98rem;
+    line-height: 1.55;
+    color: #aab8d8;
+    margin: 0 0 28px;
+}
+
+.login-benefit {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 15px 0;
+}
+
+.login-benefit-number {
+    width: 31px;
+    height: 31px;
+    flex: 0 0 31px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #243d80;
+    color: #b9c9f4;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.login-benefit strong {
+    display: block;
+    color: #f6f8ff;
+    font-size: 0.86rem;
+    margin: 1px 0 3px;
+}
+
+.login-benefit span {
+    display: block;
+    color: #9eadd0;
+    font-size: 0.78rem;
+}
+
+.login-footnote {
+    font-size: 0.72rem;
+    color: #8f9fc3;
+}
+
+.st-key-login-form-panel {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.st-key-login-form-card {
+    width: min(420px, 100%);
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding: 38px 32px 35px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 14px 32px rgba(32, 45, 76, 0.1);
+}
+
+.st-key-login-form-card h2 {
+    font-size: 1.7rem;
+    line-height: 1.2;
+    letter-spacing: -0.035em;
+    color: #17233b;
+    margin: 0 0 9px;
+}
+
+.st-key-login-form-card p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #68758a;
+    margin: 0 0 25px;
+}
+
+.st-key-login-page [data-testid="stForm"] {
+    border: 0;
+    padding: 0;
+}
+
+.st-key-login-page [data-testid="stBaseInputLabel"] {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #27344b;
+    margin-bottom: 7px;
+}
+
+.st-key-login-page [data-testid="stTextInputRoot"],
+.st-key-login-page [data-testid="stBaseInputContainer"] {
+    border-radius: 10px !important;
+    border: 1px solid #cfd8e8 !important;
+    background: #fff !important;
+    min-height: 49px;
+}
+
+.st-key-login-page .stTextInput > div > div > input,
+.st-key-login-page .stTextInput input,
+.st-key-login-page .stTextInput > div > div > input:focus,
+.st-key-login-page .stTextInput input:focus {
+    border-radius: 10px !important;
+    background: #fff !important;
+    color: #17233b !important;
+    font-size: 0.94rem !important;
+    box-shadow: none !important;
+}
+
+.st-key-login-page .stTextInput input::placeholder {
+    color: #0054e6;
+    font-size: 0.9rem;
+}
+
+.st-key-login-page [data-testid="stFormSubmitButton"] button,
+.st-key-login-page form button[type="submit"],
+.st-key-login-page .stFormSubmitButton button {
+    width: 100% !important;
+    height: 45px !important;
+    min-height: 45px !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    border: 0 !important;
+    background: #5050e3 !important;
+    color: #fff !important;
+    padding: 0.67rem 1rem !important;
+    font-size: 0.88rem !important;
+    box-shadow: none !important;
+    margin-top: 17px !important;
+}
+
+.st-key-login-page [data-testid="stFormSubmitButton"] button:hover,
+.st-key-login-page form button[type="submit"]:hover,
+.st-key-login-page .stFormSubmitButton button:hover {
+    background: #264dd7 !important;
+    color: #fff !important;
+}
+
+.login-authorization {
+    text-align: center;
+    color: #68758a;
+    font-size: 0.8rem;
+    margin: 21px 0 0;
+}
+
+.login-contact {
+    text-align: center;
+    color: #68758a;
+    font-size: 0.78rem;
+    margin: 12px 0 0;
+}
+
+.login-contact a {
+    color: #315bea;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.login-contact a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 760px) {
+    .login-panel {
+        min-height: auto;
+        padding: 32px 8%;
+    }
+
+    .login-panel--brand {
+        min-height: 420px;
+    }
+
+    .st-key-login-page {
+        padding: 24px 16px;
+    }
+
+    .login-copy h1 {
+        font-size: 2.1rem;
+    }
+}
+
+/* Login page */
+.stApp:has(.st-key-login-page) {
+    background: #f3f4f9;
+}
+
+.stApp:has(.st-key-login-page) .block-container {
+    max-width: 460px;
+    padding-top: 12vh;
+}
+
+.stApp:has(.st-key-login-page) #MainMenu,
+.stApp:has(.st-key-login-page) footer,
+.stApp:has(.st-key-login-page) header[data-testid="stHeader"] {
+    visibility: hidden;
+}
+
+.st-key-login-page {
+    min-height: auto;
+    padding: 0;
+}
+
+.st-key-login-page [data-testid="stForm"] {
+    background: #fff;
+    border: 1px solid #e6e8f0;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+}
+
+.login-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #111827 !important;
+    margin: 0 0 6px;
+    padding: 0;
+}
+
+.login-sub {
+    color: #5b6475;
+    font-size: 0.95rem;
+    margin: 0 0 22px;
+}
+
+.st-key-login-page [data-testid="stForm"] label p {
+    color: #111827;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.st-key-login-page [data-testid="stTextInputRoot"],
+.st-key-login-page [data-testid="stBaseInputContainer"] {
+    background: #fff !important;
+    border: 1px solid #d5d9e3 !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+}
+
+.st-key-login-page [data-testid="stForm"] input {
+    background: #fff !important;
+    color: #111827 !important;
+    font-size: 1rem;
+    padding: 0.8rem 0.9rem;
+}
+
+.st-key-login-page [data-testid="stForm"] input::placeholder {
+    color: #8a93a3;
+}
+
+.st-key-login-page [data-testid="stForm"] [data-testid="stTextInputRoot"] button {
+    color: #2d5be8;
+}
+
+.st-key-login-page [data-testid="stFormSubmitButton"] > button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2d5be8 !important;
+    color: #fff !important;
+    border: 0;
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    font-size: 1.05rem;
+    font-weight: 700 !important;
+    margin-top: 10px;
+}
+
+.st-key-login-page [data-testid="stFormSubmitButton"] > button p {
+    margin: 0;
+    color: #fff !important;
+}
+
+.st-key-login-page [data-testid="stFormSubmitButton"] > button:hover {
+    background: #244bc4 !important;
+    color: #fff !important;
+}
+
+.login-foot {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.82rem;
+    margin: 18px 0 0;
+}
+
+.login-contact {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.82rem;
+    margin: 12px 0 0;
+}
+
+.login-contact a {
+    color: #2d5be8;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.login-contact a:hover {
+    text-decoration: underline;
+}

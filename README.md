@@ -1,4 +1,4 @@
-﻿# Legacy Code Modernization Demo
+# Legacy Code Modernization Demo
 
 This repository demonstrates migrating trade data from a legacy PostgreSQL
 application to a cloud PostgreSQL database. It includes PostgreSQL, Kafka,
@@ -7,80 +7,100 @@ dashboard.
 
 The commands below use Windows PowerShell.
 
-## Quick start
+## Prerequisites
 
-From the repository root, with Docker Desktop running:
+- Docker Desktop with Docker Compose
+- Python 3.11 or newer for local development and tests
+- Git
+
+Start Docker Desktop before running any project commands.
+
+## Quick start: run the complete application
+
+Open PowerShell and run these commands from the repository root:
 
 ```powershell
 cd "D:\Transition X - V1\Legacy-Code-Modernization-V1"
-docker compose up --build -d
+docker compose build dashboard
+docker compose up -d legacy_db cloud_db kafka
 docker compose ps
 ```
 
-Wait until the database services are healthy, then open
-`http://localhost:8501`. Sign in with the default local credentials:
+Wait until `legacy_db` and `cloud_db` show `healthy`. Then start Kafka
+Connect and the dashboard:
+
+```powershell
+docker compose up -d connect dashboard
+docker compose ps
+```
+
+Verify Kafka Connect and the dashboard:
+
+```powershell
+curl.exe http://localhost:8083/
+Invoke-WebRequest -Uri "http://localhost:8501" -UseBasicParsing
+```
+
+Open [http://localhost:8501](http://localhost:8501) and sign in with:
 
 ```text
 Username: admin
 Password: migration
 ```
 
-The login page is branded **Bridgeline**. To view startup logs:
+The dashboard displays reconciliation, Debezium connector status,
+replication-slot status, shadow validation, and the canary decision.
+
+To follow dashboard logs:
 
 ```powershell
 docker compose logs -f dashboard
 ```
 
-Press `Ctrl+C` to stop viewing logs. To stop the project:
+Press `Ctrl+C` to stop viewing logs. The containers continue running.
+
+### Restart after frontend changes
+
+If you change
+[`legacy-migration/frontend/dashboard_app.py`](legacy-migration/frontend/dashboard_app.py),
+rebuild and restart the dashboard:
+
+```powershell
+docker compose build dashboard
+docker compose up -d dashboard
+```
+
+### Stop the application
+
+Stop the containers while preserving database data:
 
 ```powershell
 docker compose down
 ```
 
-If you change the frontend code, rebuild the dashboard container:
+Stop the containers and delete the demo database volumes:
 
 ```powershell
-docker compose up --build -d dashboard
+docker compose down -v
 ```
 
-## Legacy modernization concepts used
+Use `docker compose down -v` only when a clean database state is required.
 
-This project demonstrates four important legacy-code modernization concepts:
+## Service ports
 
-1. **Strangler Fig pattern**  
-   New cloud functionality is introduced alongside the legacy application
-   instead of replacing the entire system at once. Traffic and responsibility
-   can be moved gradually while the legacy path remains available as a safety
-   net.
-
-2. **Change Data Capture (CDC)**  
-   Changes made in the legacy PostgreSQL database are captured and propagated
-   through Kafka and Debezium to the cloud PostgreSQL database. This supports
-   near-real-time synchronization during the migration.
-
-3. **Shadow validation**  
-   Requests are evaluated using both the legacy and cloud rules, and their
-   results are compared. Differences are recorded so the cloud implementation
-   can be validated before it receives production traffic.
-
-4. **Canary cutover**  
-   Traffic is moved to the cloud implementation in controlled stages
-   (`0%`, `5%`, `25%`, `50%`, and `100%`). Each stage is gated by validation,
-   reconciliation, connector, and replication checks.
-
-## Prerequisites
-
-- Docker Desktop with Docker Compose
-- Python 3.11 or newer
-- Git
-
-Docker Desktop must be running before starting the project.
+| Service | Host port | Purpose |
+| --- | ---: | --- |
+| `legacy_db` | `5433` | Legacy PostgreSQL database |
+| `cloud_db` | `5434` | Cloud PostgreSQL database |
+| `kafka` | `9092` | Kafka broker |
+| `connect` | `8083` | Debezium Kafka Connect REST API |
+| `dashboard` | `8501` | Streamlit dashboard |
 
 ## Project layout
 
 | Path | Purpose |
 | --- | --- |
-| `docker-compose.yml` | PostgreSQL, Kafka, and Debezium services |
+| `docker-compose.yml` | PostgreSQL, Kafka, Debezium, and dashboard services |
 | `legacy-migration/requirements.txt` | Python dependencies |
 | `legacy-migration/demo.py` | Local migration, validation, canary, and rollback demo |
 | `legacy-migration/demo_kafka.py` | Kafka and Debezium CDC demos |
@@ -89,38 +109,16 @@ Docker Desktop must be running before starting the project.
 | `legacy-migration/tests/test_migration.py` | Automated tests |
 | `legacy-migration/debezium/legacy-connector.json` | Debezium connector configuration |
 
-## First-time setup
+## First-time Python setup
 
-Open PowerShell in the repository root:
-
-```powershell
-cd "D:\Transition X - V1\Legacy-Code-Modernization-V1"
-```
-
-Start all infrastructure:
+Use this setup for the migration demos, Kafka demo, and automated tests:
 
 ```powershell
-docker compose up -d
-docker compose ps
-```
-
-Services use these host ports:
-
-| Service | Host port | Purpose |
-| --- | ---: | --- |
-| `legacy_db` | `5433` | Legacy PostgreSQL database |
-| `cloud_db` | `5434` | Cloud PostgreSQL database |
-| `kafka` | `9092` | Kafka broker |
-| `connect` | `8083` | Debezium Kafka Connect REST API |
-
-Create the Python environment and install dependencies:
-
-```powershell
-cd ".\legacy-migration"
+cd "D:\Transition X - V1\Legacy-Code-Modernization-V1\legacy-migration"
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install -r .\requirements.txt
 ```
 
 If PowerShell blocks activation:
@@ -130,48 +128,23 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 ```
 
-Set the connection variables for the current PowerShell session:
+For local Python commands, export the database and Kafka settings in the same
+PowerShell window:
 
 ```powershell
-$env:LEGACY_DSN = "postgresql://postgres:postgres@localhost:5433/legacy?connect_timeout=5"
-$env:CLOUD_DSN = "postgresql://postgres:postgres@localhost:5434/cloud?connect_timeout=5"
+$env:LEGACY_DSN = "******localhost:5433/legacy?connect_timeout=5"
+$env:CLOUD_DSN = "******localhost:5434/cloud?connect_timeout=5"
 $env:KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
 ```
 
-## Run the local migration demo
-
-From `legacy-migration`:
-
-```powershell
-python .\demo.py
-```
-
-This exercises legacy submission, CDC into the cloud store, shadow
-validation, canary rollout, cloud failure fallback, and rollback. Successful
-execution ends with:
-
-```text
-ALL CHECKS PASSED
-```
-
-Run the intentional negative test:
-
-```powershell
-python .\demo.py --negative-test
-```
-
-This injects a cloud fee-rounding defect and should show that cutover is
-blocked.
-
 ## Register the Debezium connector
 
-The direct Kafka flow only needs Kafka. The Debezium CDC flow also needs the
-`connect` service and a registered connector.
-
-Check that Kafka Connect is ready:
+Start the complete application first, then run these commands from
+`legacy-migration`:
 
 ```powershell
-Invoke-WebRequest -Uri "http://localhost:8083/" -UseBasicParsing
+cd "D:\Transition X - V1\Legacy-Code-Modernization-V1\legacy-migration"
+curl.exe http://localhost:8083/
 ```
 
 Register the connector:
@@ -205,6 +178,32 @@ Invoke-RestMethod `
   -Body ($config | ConvertTo-Json)
 ```
 
+The connector configuration must use the Docker hostname `legacy_db`, not
+`localhost`, for the source database.
+
+## Run the migration demo
+
+From `legacy-migration`, with the Docker databases running:
+
+```powershell
+python .\demo.py
+```
+
+Successful execution ends with:
+
+```text
+ALL CHECKS PASSED
+```
+
+Run the intentional negative test:
+
+```powershell
+python .\demo.py --negative-test
+```
+
+This injects a cloud fee-rounding defect and should show that cutover is
+blocked.
+
 ## Run the Kafka demo
 
 From `legacy-migration`:
@@ -213,9 +212,9 @@ From `legacy-migration`:
 python .\demo_kafka.py
 ```
 
-The script contains a direct Kafka producer/consumer flow and a Debezium CDC
-resume/replay flow. The Debezium flow requires connector registration first.
-The CDC consumer reads the topic `legacy.public.trades`.
+The direct Kafka flow requires Kafka. The Debezium CDC flow also requires the
+`connect` service and a registered connector. The CDC consumer reads the
+`legacy.public.trades` topic.
 
 Successful execution includes:
 
@@ -224,62 +223,30 @@ ALL KAFKA CHECKS PASSED
 KAFKA CDC CHECKS PASSED
 ```
 
-## Run the dashboard
-
-The recommended path starts all required services and the dashboard through
-Docker Compose:
+To inspect messages directly from the Kafka container:
 
 ```powershell
-docker compose up --build -d
+docker exec kafka /opt/kafka/bin/kafka-console-consumer.sh `
+  --bootstrap-server localhost:9092 `
+  --topic legacy.public.trades `
+  --from-beginning `
+  --max-messages 3
 ```
 
-Open `http://localhost:8501` and sign in with `admin` / `migration`, unless
-you override `DASHBOARD_USERNAME` and `DASHBOARD_PASSWORD`. Compose waits for
-both PostgreSQL containers, initializes their tables and demo rows, and
-restarts the dashboard if startup fails. Check the service status with:
-
-```powershell
-docker compose ps
-```
-
-If you changed `legacy-migration/frontend/dashboard_app.py`, rebuild the
-dashboard container:
-
-```powershell
-docker compose up --build -d dashboard
-```
+## Run automated tests
 
 From `legacy-migration`:
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-$env:LEGACY_DSN = "postgresql://postgres:postgres@localhost:5433/legacy?connect_timeout=5"
-$env:CLOUD_DSN = "postgresql://postgres:postgres@localhost:5434/cloud?connect_timeout=5"
-python -m streamlit run .\frontend\dashboard_app.py
+.\.venv\Scripts\python.exe -m pytest -v
 ```
 
-Open:
+The tests use the PostgreSQL DSNs shown in the Python setup section.
 
-```text
-http://localhost:8501
-```
+## Run Streamlit directly for development
 
-For a headless launch:
-
-```powershell
-python -m streamlit run .\frontend\dashboard_app.py `
-  --server.headless true `
-  --server.address localhost `
-  --server.port 8501
-```
-
-The dashboard displays reconciliation, Debezium connector status,
-replication-slot status, shadow validation, and the canary decision.
-
-### Direct Python development run
-
-Use this flow when you want Streamlit to reload while editing the frontend.
-Start the database services from the repository root:
+Use this mode when you want Streamlit to reload while editing the frontend.
+The Docker databases must be running:
 
 ```powershell
 cd "D:\Transition X - V1\Legacy-Code-Modernization-V1"
@@ -288,77 +255,118 @@ cd ".\legacy-migration"
 .\.venv\Scripts\python.exe -m pip install -r .\requirements.txt
 ```
 
-Set these variables in the same PowerShell window:
+Set the environment variables:
 
 ```powershell
-$env:LEGACY_DSN = "postgresql://postgres:postgres@localhost:5433/legacy?connect_timeout=5"
-$env:CLOUD_DSN = "postgresql://postgres:postgres@localhost:5434/cloud?connect_timeout=5"
+$env:LEGACY_DSN = "******localhost:5433/legacy?connect_timeout=5"
+$env:CLOUD_DSN = "******localhost:5434/cloud?connect_timeout=5"
 $env:CONNECTOR_URL = "http://localhost:8083/connectors/legacy-trades-connector/status"
 $env:DASHBOARD_USERNAME = "admin"
 $env:DASHBOARD_PASSWORD = "migration"
 ```
 
-Initialize the databases and start the frontend:
+Initialize the databases and start Streamlit:
 
 ```powershell
 .\.venv\Scripts\python.exe -m backend.bootstrap
-.\.venv\Scripts\python.exe -m streamlit run .\frontend\dashboard_app.py --server.address localhost --server.port 8501
+.\.venv\Scripts\python.exe -m streamlit run .\frontend\dashboard_app.py `
+  --server.headless true `
+  --server.address localhost `
+  --server.port 8501
 ```
 
-Open `http://localhost:8501`. Press `Ctrl+C` to stop the local Streamlit
-process.
+Open [http://localhost:8501](http://localhost:8501). Press `Ctrl+C` to stop
+the local Streamlit process.
 
-The dashboard opens with a login screen. For the local demo, the default
-credentials are `admin` / `migration`. Set these environment variables before
-starting Streamlit to use different credentials:
+## Demo walkthrough: run order
+
+Use this section to run the complete demo in order. It assumes Docker Desktop
+is running, `legacy_db`, `cloud_db`, and `kafka` are already up, the Python
+environment is set up (see [First-time Python setup](#first-time-python-setup)),
+and the Debezium connector is registered (see
+[Register the Debezium connector](#register-the-debezium-connector)).
+
+### 1. Start Kafka Connect and check the containers
 
 ```powershell
-$env:DASHBOARD_USERNAME = "your-user"
-$env:DASHBOARD_PASSWORD = "your-password"
+docker compose up -d connect
+docker compose ps
 ```
 
-## Run automated tests
-
-From `legacy-migration`:
+### 2. Check the Debezium connector status
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q
+curl.exe http://localhost:8083/connectors/legacy-trades-connector/status
 ```
 
-The tests use the PostgreSQL DSNs shown in the setup section.
+The connector and its task should report `RUNNING`.
 
-## Stop and reset
-
-Stop containers while preserving database volumes:
+### 3. Run the tests and the migration demos
 
 ```powershell
-cd "D:\Transition X - V1\Legacy-Code-Modernization-V1"
-docker compose down
+cd legacy-migration
+python -m pytest -v
+python demo.py
+python demo.py --negative-test
 ```
 
-Stop containers and delete the demo database volumes:
+`python demo.py` should end with `ALL CHECKS PASSED`. The negative test
+injects a fee-rounding defect and should show that cutover is blocked.
+
+### 4. Run the Kafka demo
 
 ```powershell
-docker compose down -v
+python demo_kafka.py
 ```
 
-Use `docker compose down -v` only when a clean database state is required.
+Successful execution includes `ALL KAFKA CHECKS PASSED` and
+`KAFKA CDC CHECKS PASSED`.
 
-## Important data behavior
+### 5. Inspect the CDC messages in Kafka
 
-`Legacy` and `Cloud` create their tables when they start and truncate the demo
-tables for repeatable runs. Running a demo can remove existing data in the two
-demo databases. Do not point `LEGACY_DSN` or `CLOUD_DSN` at a shared or
-production database.
+```powershell
+docker exec kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic legacy.public.trades --from-beginning --max-messages 3
+```
+
+This prints the first three change events from the `legacy.public.trades`
+topic.
+
+### 6. Start the dashboard (in a new terminal)
+
+Open a **new terminal** and run:
+
+```powershell
+cd "D:\Transition X - V1\Legacy-Code-Modernization-V1\legacy-migration"
+python -m streamlit run frontend/dashboard_app.py
+```
+
+Open [http://localhost:8501](http://localhost:8501) and sign in with
+`admin` / `migration`. Keep the first terminal open for the other commands.
+
+If the Docker `dashboard` container is also running, it already uses port
+`8501`. Stop it with `docker compose stop dashboard`, or start the local
+dashboard on another port with `--server.port 8502`.
 
 ## Troubleshooting
 
-### Kafka connection failure
+### Check all services
 
 ```powershell
 docker compose ps
-docker compose logs kafka --tail 100
+```
+
+`legacy_db` and `cloud_db` should be `healthy`. `connect` should be
+`healthy` before registering the connector.
+
+### Kafka Connect is restarting
+
+Kafka Connect requires Kafka to be running. Start the services in this order:
+
+```powershell
 docker compose up -d kafka
+docker compose up -d connect
+curl.exe http://localhost:8083/
+docker compose logs --tail 100 connect
 ```
 
 ### Database connection failure
@@ -367,6 +375,8 @@ docker compose up -d kafka
 docker compose ps
 Test-NetConnection localhost -Port 5433
 Test-NetConnection localhost -Port 5434
+docker compose logs --tail 100 legacy_db
+docker compose logs --tail 100 cloud_db
 ```
 
 Re-export `LEGACY_DSN` and `CLOUD_DSN` in the current PowerShell session.
@@ -376,15 +386,31 @@ Re-export `LEGACY_DSN` and `CLOUD_DSN` in the current PowerShell session.
 ```powershell
 Invoke-RestMethod `
   -Uri "http://localhost:8083/connectors/legacy-trades-connector/status"
-docker compose logs connect --tail 150
+docker compose logs --tail 150 connect
 ```
-
-The connector must use the Docker hostname `legacy_db`, not `localhost`.
 
 ### Dashboard dependency or syntax failure
 
 ```powershell
 cd "D:\Transition X - V1\Legacy-Code-Modernization-V1\legacy-migration"
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r .\requirements.txt
 .\.venv\Scripts\python.exe -m py_compile .\frontend\dashboard_app.py
+docker compose logs --tail 150 dashboard
 ```
+
+## Important data behavior
+
+The bootstrap process creates the application tables and inserts demo rows
+when the databases are empty. Do not point `LEGACY_DSN` or `CLOUD_DSN` at a
+shared or production database.
+
+## Modernization concepts demonstrated
+
+1. **Strangler Fig pattern** - Cloud functionality is introduced alongside the
+   legacy application so traffic can move gradually.
+2. **Change Data Capture (CDC)** - Debezium captures changes from legacy
+   PostgreSQL and publishes them through Kafka.
+3. **Shadow validation** - Legacy and cloud rules are evaluated together and
+   their results are compared before cutover.
+4. **Canary cutover** - Traffic moves through controlled stages: `0%`, `5%`,
+   `25%`, `50%`, and `100%`.
