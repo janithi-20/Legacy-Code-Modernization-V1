@@ -1,5 +1,8 @@
+import json
 import pathlib
 import sys
+import urllib.error
+import urllib.request
 from types import SimpleNamespace
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
@@ -7,581 +10,211 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import pandas as pd
 import psycopg
 import streamlit as st
+from psycopg.rows import dict_row
 
 from app.common import calc
 from app.config import CLOUD_DSN, LEGACY_DSN
-from backend.auth import credentials_match
-from backend.data import Reader, connector_status, run_query, slot_info
-from app.migration.canary import advance
+from app.migration.canary import STEPS, advance
 from app.validation.reconciliation import reconcile
 from app.validation.shadow import Shadow
-
-st.set_page_config(page_title="Bridgeline | Migration Control", layout="wide")
-
-
-def login():
-    if st.session_state.get("authenticated", False):
-        return True
-
-    st.markdown(
-        """
-        <style>
-        /* Login page theme: edit these variables to customize the palette. */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-        :root {
-            --login-page: #F3F5F9;
-            --login-ink: #0F172A;
-            --login-muted: #5B6475;
-            --login-border: #CBD2E0;
-            --login-blue: #2F5BEA;
-            --login-blue-dark: #2446C9;
-            --login-focus: #9DB4FF;
-        }
-
-        [data-testid="stHeader"],
-        [data-testid="stToolbar"],
-        [data-testid="stDeployButton"],
-        footer {
-            display: none;
-        }
-
-        html,
-        body,
-        [data-testid="stAppViewContainer"] {
-            background: var(--login-page);
-            font-family: 'Inter', sans-serif;
-        }
-
-        [data-testid="stMain"] {
-            min-height: 100vh;
-            padding: 0 8px;
-        }
-
-        [data-testid="stMainBlockContainer"] {
-            min-height: 100vh;
-            max-width: none;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] {
-            width: min(100%, 420px);
-            align-items: center;
-        }
-
-        [data-testid="stLayoutWrapper"] {
-            width: min(100%, 420px) !important;
-            margin: auto !important;
-        }
-
-        /* Card, heading, fields, and button. */
-        [data-testid="stForm"] {
-            width: min(100%, 420px);
-            box-sizing: border-box;
-            padding: 36px 32px;
-            border: 0;
-            border-radius: 20px;
-            background: #FFFFFF;
-            box-shadow: 0 8px 30px rgba(15, 27, 61, 0.10);
-        }
-
-        [data-testid="stForm"] > [data-testid="stVerticalBlock"] {
-            gap: 0 !important;
-        }
-
-        .login-heading h1 {
-            margin: 0 0 8px;
-            color: var(--login-ink);
-            font-size: 26px;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-            line-height: 1.25;
-            text-align: center;
-        }
-
-        .login-heading p {
-            margin: 0 0 28px;
-            color: var(--login-muted);
-            font-size: 15px;
-            line-height: 1.45;
-            text-align: center;
-        }
-
-        [data-testid="stForm"] label {
-            color: var(--login-ink);
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        [data-testid="stForm"] [data-testid="stTextInput"] {
-            margin-bottom: 20px;
-        }
-
-        [data-testid="stForm"] [data-testid="stTextInput"] input {
-            box-sizing: border-box;
-            height: 48px;
-            margin-top: 6px;
-            border: 1.5px solid var(--login-border);
-            border-radius: 12px;
-            background: #FFFFFF !important;
-            color: var(--login-ink) !important;
-            caret-color: var(--login-ink) !important;
-            font-family: 'Inter', sans-serif;
-            font-size: 15px;
-        }
-
-        [data-testid="stForm"] input::placeholder {
-            color: #7A7F87 !important;
-            opacity: 1 !important;
-        }
-
-        [data-testid="stForm"] [data-testid="stTextInput"] input:focus {
-            border-color: var(--login-focus) !important;
-            box-shadow: 0 0 0 3px rgba(157, 180, 255, 0.28) !important;
-        }
-
-        /* Keep Streamlit's password behavior while displaying a text toggle. */
-        [data-testid="stForm"] [data-testid="stTextInput"]:has(input[type="password"]) button {
-            color: var(--login-blue-dark) !important;
-            font-size: 0 !important;
-            font-weight: 600;
-        }
-
-        [data-testid="stForm"] [data-testid="stTextInput"]:has(input[type="password"]) button::after {
-            content: "Show";
-            font-size: 14px;
-        }
-
-        [data-testid="stForm"] [data-testid="stTextInput"]:has(input[type="text"]) button::after {
-            content: "Hide";
-        }
-
-        [data-testid="stFormSubmitButton"] {
-            width: 100% !important;
-        }
-
-        [data-testid="stFormSubmitButton"] button {
-            width: 100% !important;
-            height: 50px;
-            margin-top: 0;
-            border: 0;
-            border-radius: 12px;
-            background: var(--login-blue);
-            color: #FFFFFF;
-            font-family: 'Inter', sans-serif;
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        [data-testid="stBaseButton-primaryFormSubmit"] {
-            width: 100% !important;
-        }
-
-        [kind="primaryFormSubmit"] {
-            width: 100% !important;
-        }
-
-        [data-testid="stFormSubmitButton"] button:hover {
-            border: 0;
-            background: var(--login-blue-dark);
-        }
-
-        .login-error {
-            margin-top: 16px;
-            padding: 12px 14px;
-            border: 1px solid #F4B8B1;
-            border-radius: 12px;
-            background: #FDE8E6;
-            color: #8F2217;
-            font-size: 14px;
-            font-weight: 500;
-            line-height: 1.4;
-        }
-
-        .login-help {
-            margin-top: 18px;
-            color: var(--login-muted);
-            font-size: 13px;
-            text-align: center;
-        }
-
-        .login-help a {
-            color: var(--login-blue-dark);
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .login-footer {
-            margin-top: 10px;
-            color: var(--login-muted);
-            font-size: 13px;
-            text-align: center;
-        }
-
-        @media (max-width: 800px) {
-            [data-testid="stMainBlockContainer"] {
-                padding: 8px;
-            }
-
-            [data-testid="stForm"] {
-                padding: 36px 24px;
-            }
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    with st.form("login_form"):
-        st.markdown(
-            """
-            <div class="login-heading">
-                <h1>Welcome</h1>
-                <p>Sign in to access the migration control dashboard.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        entered_username = st.text_input(
-            "Username", placeholder="Enter your username", autocomplete="username"
-        )
-        entered_password = st.text_input(
-            "Password",
-            type="password",
-            placeholder="Enter your password",
-            autocomplete="current-password",
-        )
-        submitted = st.form_submit_button(
-            "Sign in", type="primary", use_container_width=True
-        )
-        if submitted:
-            if credentials_match(entered_username, entered_password):
-                st.session_state["authenticated"] = True
-                st.rerun()
-            st.markdown(
-                '<div class="login-error" role="alert">'
-                "Incorrect username or password. Please try again."
-                "</div>",
-                unsafe_allow_html=True,
-            )
-        st.markdown(
-            """
-            <div class="login-help">
-                Can't sign in? <a href="mailto:support@example.com">Contact us</a>
-            </div>
-            <div class="login-footer">Authorized team members only.</div>
-            """,
-            unsafe_allow_html=True,
-        )
-    return False
-
-
-def legacy_login():
-    if st.session_state.get("authenticated", False):
-        return True
-
-    st.markdown(
-        """
-        <style>
-        [data-testid="stHeader"], [data-testid="stToolbar"] {
-            display: none;
-        }
-
-        [data-testid="stAppViewContainer"] {
-            background: #f4f6fb;
-        }
-
-        [data-testid="stMain"] {
-            padding: 0;
-        }
-
-        .login-shell {
-            min-height: 100vh;
-            display: grid;
-            grid-template-columns: minmax(420px, 1fr) minmax(480px, 1fr);
-            margin: -4rem -4rem 0;
-        }
-
-        .login-brand-panel {
-            background: #111d43;
-            color: #ffffff;
-            padding: 3rem 3.5rem 2.5rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .brand-mark {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.65rem;
-            font-size: 1rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-
-        .brand-icon {
-            width: 2.15rem;
-            height: 2.15rem;
-            border-radius: 0.55rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #5578f5;
-            font-size: 1.55rem;
-            font-weight: 400;
-            line-height: 1;
-        }
-
-        .brand-copy {
-            max-width: 32rem;
-            margin: auto 0;
-        }
-
-        .brand-copy h1 {
-            margin: 0 0 1.1rem;
-            color: #ffffff;
-            font-size: clamp(2.2rem, 3.3vw, 3.45rem);
-            line-height: 1.08;
-            letter-spacing: -0.045em;
-        }
-
-        .brand-copy > p {
-            margin: 0 0 2.1rem;
-            color: #aeb9d8;
-            font-size: 1rem;
-            line-height: 1.55;
-        }
-
-        .feature-list {
-            display: grid;
-            gap: 1.05rem;
-        }
-
-        .feature {
-            display: grid;
-            grid-template-columns: 2rem 1fr;
-            gap: 0.7rem;
-            align-items: start;
-        }
-
-        .feature-number {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #263d81;
-            color: #b7c8ff;
-            font-weight: 700;
-        }
-
-        .feature strong {
-            display: block;
-            margin: 0.1rem 0 0.15rem;
-            font-size: 0.9rem;
-        }
-
-        .feature span {
-            color: #aeb9d8;
-            font-size: 0.8rem;
-        }
-
-        .brand-footer {
-            color: #8998be;
-            font-size: 0.72rem;
-        }
-
-        .login-form-panel {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 3rem;
-        }
-
-        .login-form-panel > div {
-            width: min(100%, 28rem);
-        }
-
-        .login-heading h2 {                                  
-            margin: 0 0 0.45rem;
-            color: #17213a;
-            font-size: 1.55rem;
-            letter-spacing: -0.03em;
-            text-align: center;
-        }
-
-        .login-heading p {
-            margin: 0 0 1.25rem;
-            color: #69758b;
-            font-size: 0.85rem;
-            text-align: center;
-        }
-
-        [data-testid="stForm"] {
-            padding: 2rem 1.7rem 1.65rem;
-            border: 0;
-            border-radius: 1.05rem;
-            background: #ffffff;
-            box-shadow: 0 1.25rem 2.7rem rgba(17, 29, 67, 0.12);
-        }
-
-        [data-testid="stForm"] label {
-            color: #17213a;
-            font-size: 0.78rem;
-            font-weight: 700;
-        }
-
-        [data-testid="stForm"] input {
-            height: 2.65rem;
-            border: 1px solid #d5dce9;
-            border-radius: 0.65rem;
-            background: #ffffff !important;
-            color: #17213a !important;
-            caret-color: #17213a !important;
-            font-size: 0.85rem;
-        }
-
-        [data-testid="stForm"] input::placeholder {
-            color: #7a8598 !important;
-            opacity: 1 !important;
-        }
-
-        [data-testid="stForm"] input:focus {
-            border-color: #3760eb;
-            box-shadow: 0 0 0 1px #3760eb;
-        }
-
-        [data-testid="stFormSubmitButton"] button {
-            width: 100%;
-            height: 2.7rem;
-            margin-top: 0.45rem;
-            border: 0;
-            border-radius: 0.65rem;
-            background: #3560eb;
-            font-weight: 700;
-        }
-
-        [data-testid="stFormSubmitButton"] button:hover {
-            background: #284ed0;
-        }
-
-        .login-note {
-            margin-top: 1.1rem;
-            color: #7a8598;
-            font-size: 0.72rem;
-            text-align: center;
-        }
-
-        @media (max-width: 800px) {
-            .login-shell {
-                display: block;
-                margin: -1rem -1rem 0;
-            }
-
-            .login-brand-panel {
-                min-height: auto;
-                padding: 2rem 1.5rem;
-                gap: 3rem;
-            }
-
-            .brand-copy h1 {
-                font-size: 2.35rem;
-            }
-
-            .brand-footer {
-                display: none;
-            }
-
-            .login-form-panel {
-                padding: 2.5rem 1.25rem;
-            }
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    left, right = st.columns([1, 1], gap="small")
-    with left:
-        st.markdown(
-            """
-            <div class="login-brand-panel">
-                <div class="brand-mark">
-                    <span class="brand-icon">→</span>
-                    <span>Bridgeline</span>
-                </div>
-                <div class="brand-copy">
-                    <h1>Move to the cloud<br>without stopping the exchange.</h1>
-                    <p>Watch legacy and cloud data stay in sync, validate every result, then shift traffic step by step.</p>
-                    <div class="feature-list">
-                        <div class="feature">
-                            <span class="feature-number">1</span>
-                            <div><strong>Live sync status</strong><span>Debezium, Kafka and row counts at a glance.</span></div>
-                        </div>
-                        <div class="feature">
-                            <span class="feature-number">2</span>
-                            <div><strong>Shadow validation</strong><span>Compare legacy and cloud results on the same requests.</span></div>
-                        </div>
-                        <div class="feature">
-                            <span class="feature-number">3</span>
-                            <div><strong>Canary rollout and rollback</strong><span>5, 25, 50, 100% of traffic, with a way back to 0%.</span></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="brand-footer">Legacy PostgreSQL to cloud PostgreSQL · Local simulation</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with right:
-        st.markdown(
-            """
-            <div class="login-form-panel">
-                <div class="login-heading">
-                    <h2>Welcome back</h2>
-                    <p>Sign in to access the migration control dashboard.</p>
-            """,
-            unsafe_allow_html=True,
-        )
-        with st.form("login_form"):
-            entered_username = st.text_input(
-                "Username", placeholder="Enter your username", autocomplete="username"
-            )
-            entered_password = st.text_input(
-                "Password",
-                type="password",
-                placeholder="Enter your password",
-                autocomplete="current-password",
-            )
-            submitted = st.form_submit_button("Sign in", type="primary")
-        st.markdown(
-            '<div class="login-note">Authorized team members only.</div></div></div>',
-            unsafe_allow_html=True,
-        )
+from backend.auth import credentials_match
+
+CONNECTOR_URL = "http://localhost:8083/connectors/legacy-trades-connector/status"
+COLS = "report_id, symbol, quantity, price, notional, fee"
+
+st.set_page_config(page_title="Migration Control Center", page_icon="🛰️", layout="wide")
+
+CSS = """
+<style>
+.block-container{padding-top:1.5rem;max-width:1250px}
+header[data-testid="stHeader"]{background:transparent}
+#MainMenu,footer{visibility:hidden}
+.hero{background:linear-gradient(120deg,#0f172a 0%,#1e3a8a 55%,#6d28d9 100%);border-radius:20px;
+padding:28px 34px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:20px;
+box-shadow:0 10px 40px rgba(79,70,229,.35);margin-bottom:22px}
+.hero h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:.3px;color:#fff}
+.hero p{margin:6px 0 0;opacity:.85;font-size:.95rem;max-width:640px}
+.verdict{padding:14px 26px;border-radius:999px;font-weight:800;letter-spacing:1.5px;font-size:1.05rem;white-space:nowrap;color:#fff}
+.verdict.ok{background:#16a34a;box-shadow:0 0 0 6px rgba(34,197,94,.25)}
+.verdict.bad{background:#dc2626;box-shadow:0 0 0 6px rgba(239,68,68,.25)}
+.sec{font-size:1.15rem;font-weight:700;margin:28px 0 12px;color:#e2e8f0;display:flex;align-items:center;gap:10px}
+.sec .bar{width:5px;height:22px;border-radius:3px;background:linear-gradient(#38bdf8,#a78bfa)}
+.kpi{background:linear-gradient(145deg,#111827,#1f2937);border:1px solid #334155;border-radius:16px;
+padding:18px 20px 16px 24px;position:relative;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.3)}
+.kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
+.kpi .lab{color:#94a3b8;font-size:.78rem;text-transform:uppercase;letter-spacing:1.2px}
+.kpi .val{font-size:2.3rem;font-weight:800;color:#f8fafc;line-height:1.15}
+.kpi .sub{color:#64748b;font-size:.78rem}
+.pipe{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.node{flex:1;min-width:150px;background:#0f172a;border:1px solid #334155;border-radius:16px;padding:16px 10px;text-align:center}
+.node .ico{font-size:1.8rem}
+.node .nm{font-weight:700;color:#f1f5f9;margin-top:4px}
+.node .st{font-size:.76rem;margin-top:8px;display:inline-block;padding:3px 12px;border-radius:999px;font-weight:700}
+.node .sub{color:#64748b;font-size:.74rem;margin-top:8px}
+.st.ok{background:rgba(34,197,94,.15);color:#4ade80}
+.st.bad{background:rgba(239,68,68,.15);color:#f87171}
+.st.warn{background:rgba(245,158,11,.15);color:#fbbf24}
+.st.idle{background:rgba(148,163,184,.15);color:#cbd5e1}
+.arrow{align-self:center;font-size:1.5rem;color:#38bdf8}
+.donut{width:170px;height:170px;border-radius:50%;display:grid;place-items:center;margin:6px auto}
+.hole{width:126px;height:126px;border-radius:50%;background:#0b1020;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.hole b{font-size:2rem;color:#f8fafc}
+.hole span{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px}
+.chk{display:flex;align-items:center;gap:12px;padding:11px 16px;margin-bottom:8px;border-radius:12px;
+background:#0f172a;border:1px solid #334155;color:#e2e8f0;font-weight:600}
+.chk .dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:.9rem;font-weight:800;color:#fff}
+.chk.ok{border-color:rgba(34,197,94,.5)}
+.chk.ok .dot{background:#16a34a}
+.chk.bad{border-color:rgba(239,68,68,.5)}
+.chk.bad .dot{background:#dc2626}
+.stepper{display:flex;align-items:center;margin:8px 0 14px}
+.stepper .c{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;font-weight:800;
+border:2px solid #334155;color:#94a3b8;background:#0f172a}
+.stepper .done .c{background:#16a34a;border-color:#16a34a;color:#fff}
+.stepper .cur .c{background:linear-gradient(135deg,#6366f1,#a855f7);border-color:#a78bfa;color:#fff;box-shadow:0 0 0 6px rgba(139,92,246,.25)}
+.stepper .line{flex:1;height:3px;background:#334155;margin:0 6px}
+.stButton>button,div[data-testid="stButton"]>button{border-radius:12px;font-weight:700;border:0;
+background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;padding:.55rem 1.3rem}
+.stButton>button:hover,div[data-testid="stButton"]>button:hover{filter:brightness(1.15);color:#fff}
+.login-shell{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;background:#031421;padding:0 0 40px;margin:0 -1rem 0 -1rem}
+.login-card{max-width:1280px;width:100%;padding:14px 0 0;border-radius:0;background:transparent;border:0;box-shadow:none}
+.login-brand{font-size:3rem;font-weight:800;color:#f4f6f8;text-align:center;margin:0 0 14px}
+.login-sub{font-size:1.05rem;color:#dfe7ef;line-height:1.5;text-align:left;margin:0 0 18px;padding-left:0}
+.login-form{padding-top:0}
+[data-testid="stForm"]{display:block}
+[data-testid="stBaseInputLabel"]{font-size:1rem;font-weight:700;color:#f4f7fb;margin-bottom:8px}
+[data-testid="stTextInputRoot"], [data-testid="stBaseInputContainer"]{border-radius:12px !important; border:1px solid rgba(177,189,204,.55) !important; background:#f5f5f5 !important;}
+.stTextInput>div>div>input, .stTextInput input, .stTextInput>div>div>input:focus, .stTextInput input:focus{border-radius:12px !important; background:#f5f5f5 !important; color:#1b2430 !important; font-size:1.1rem !important; box-shadow:none !important;}
+.stTextInput input::placeholder{color:#8e97a1; font-size:1rem;}
+.stButton>button,div[data-testid="stButton"]>button{width:100%;border-radius:12px;font-weight:700;border:1px solid rgba(164,175,191,.65);background:#2f3c4f;color:#f3f5f8;padding:.7rem 1.2rem;font-size:1.1rem;box-shadow:none;margin-top:18px}
+.stButton>button:hover,div[data-testid="stButton"]>button:hover{filter:brightness(1.06);color:#fff}
+</style>
+"""
+
+
+def render(markup):
+    st.markdown("".join(line.strip() for line in markup.splitlines()), unsafe_allow_html=True)
+
+
+render(CSS)
+
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+
+def login_screen():
+    st.markdown("<div class='login-shell'>", unsafe_allow_html=True)
+    st.markdown("<div class='login-card'>", unsafe_allow_html=True)
+    st.markdown("<h1 class='login-brand'>Welcome</h1>", unsafe_allow_html=True)
+    st.markdown("<div class='login-sub'>Sign in to access the migration control dashboard.</div>", unsafe_allow_html=True)
+
+    with st.form("login_form", clear_on_submit=False):
+        st.markdown("<div class='login-form'>", unsafe_allow_html=True)
+        username = st.text_input("Username", placeholder="Enter your username")
+        password = st.text_input("Password", type="password", placeholder="Enter your password")
+        submitted = st.form_submit_button("Sign in")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     if submitted:
-        if credentials_match(entered_username, entered_password):
-            st.session_state["authenticated"] = True
+        if credentials_match(username, password):
+            st.session_state.authenticated = True
             st.rerun()
-        st.error("Invalid username or password.")
-    return False
+        else:
+            st.error("Invalid username or password.")
 
-
-if not login():
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
+
+
+if not st.session_state.authenticated:
+    login_screen()
+
+
+def section(icon, title):
+    render(f'<div class="sec"><span class="bar"></span>{icon} {title}</div>')
+
+
+def kpi(label, value, sub, color):
+    render(f'<div class="kpi" style="--c:{color}"><div class="lab">{label}</div>'
+           f'<div class="val">{value}</div><div class="sub">{sub}</div></div>')
+
+
+def hero(allowed, label, subtitle):
+    cls = "ok" if allowed else "bad"
+    render(f'<div class="hero"><div><h1>🛰️ Migration Control Center</h1><p>{subtitle}</p></div>'
+           f'<div class="verdict {cls}">{label}</div></div>')
+
+
+def node_html(icon, name, status, kind, sub=""):
+    sub_html = f'<div class="sub">{sub}</div>' if sub else ""
+    return (f'<div class="node"><div class="ico">{icon}</div><div class="nm">{name}</div>'
+            f'<span class="st {kind}">{status}</span>{sub_html}</div>')
+
+
+def donut(pct, label, good):
+    color = "#22c55e" if good else "#f59e0b"
+    render(f'<div class="donut" style="background:conic-gradient({color} {pct * 3.6}deg,#1f2937 0)">'
+           f'<div class="hole"><b>{pct}%</b><span>{label}</span></div></div>')
+
+
+def check(label, ok):
+    cls = "ok" if ok else "bad"
+    mark = "✓" if ok else "✕"
+    render(f'<div class="chk {cls}"><span class="dot">{mark}</span>{label}</div>')
+
+
+def stepper(pct):
+    parts = []
+    for s in STEPS:
+        cls = "done" if s < pct else ("cur" if s == pct else "")
+        parts.append(f'<div class="{cls}"><div class="c">{s}%</div></div>')
+    render('<div class="stepper">' + '<div class="line"></div>'.join(parts) + '</div>')
+
+
+def run_query(dsn, sql):
+    with psycopg.connect(dsn, row_factory=dict_row, autocommit=True) as conn:
+        return conn.execute(sql).fetchall()
+
+
+class Reader:
+    """Read-only view of a trades table (never creates, clears or changes data)."""
+
+    def __init__(self, dsn):
+        self.dsn = dsn
+
+    def all(self):
+        rows = run_query(self.dsn, f"SELECT {COLS} FROM trades")
+        return {r["report_id"]: r for r in rows}
 
 
 def snapshot(data):
     return SimpleNamespace(all=lambda: data)
 
 
+def connector_status():
+    try:
+        with urllib.request.urlopen(CONNECTOR_URL, timeout=3) as resp:
+            info = json.load(resp)
+        return info["connector"]["state"], [t["state"] for t in info.get("tasks", [])]
+    except urllib.error.HTTPError as exc:
+        return ("NOT REGISTERED" if exc.code == 404 else "ERROR"), []
+    except Exception:
+        return "UNREACHABLE", []
+
+
+def slot_info():
+    rows = run_query(
+        LEGACY_DSN,
+        "SELECT active, "
+        "pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn)::bigint AS lag_bytes "
+        "FROM pg_replication_slots WHERE slot_name = 'legacy_slot'")
+    return rows[0] if rows else None
+
+
 class SimulatedSystem:
-    """Apply the project fee rule, optionally reproducing the cloud bug."""
+    """Same fee rule as the project. bug=True mimics the cloud rounding bug."""
 
     def __init__(self, bug=False):
         self.bug = bug
@@ -591,123 +224,106 @@ class SimulatedSystem:
 
 
 def live_panel():
+    target = "Amazon RDS (AWS)" if "amazonaws.com" in CLOUD_DSN else "local Docker database"
+    subtitle = ("Legacy trade reporting to the cloud with real-time CDC, shadow validation "
+                f"and canary rollout. Cloud target: {target}")
     try:
-        legacy = Reader(LEGACY_DSN).all()
-        cloud = Reader(CLOUD_DSN).all()
+        a = Reader(LEGACY_DSN).all()
+        b = Reader(CLOUD_DSN).all()
         slot = slot_info()
-    except (OSError, psycopg.Error) as exc:
+    except Exception as exc:
         st.session_state["lag"] = None
+        hero(False, "OFFLINE", subtitle)
         st.error(f"Could not read the databases: {exc}")
-        st.info(
-            "Check the containers with: docker compose ps. "
-            "If the tables are missing, run python demo.py once."
-        )
+        st.info("Check the containers with docker compose ps. "
+                "If the tables are missing, run python demo.py once.")
         return
 
-    reconciliation = reconcile(snapshot(legacy), snapshot(cloud))
-    missing = len(reconciliation["missing"])
-    extra = len(reconciliation["extra"])
-    different = len(reconciliation["different"])
-    connector, tasks = connector_status()
-    connector_ok = (
-        connector == "RUNNING"
-        and bool(tasks)
-        and all(task == "RUNNING" for task in tasks)
-    )
+    rec = reconcile(snapshot(a), snapshot(b))
+    missing, extra, different = len(rec["missing"]), len(rec["extra"]), len(rec["different"])
+    state, tasks = connector_status()
+    connector_ok = state == "RUNNING" and bool(tasks) and all(t == "RUNNING" for t in tasks)
     slot_ok = bool(slot and slot["active"])
     in_sync = missing == 0 and extra == 0 and different == 0
     st.session_state["lag"] = missing
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Legacy trades", len(legacy))
-    m2.metric("Cloud trades", len(cloud))
-    m3.metric("Missing in cloud", missing)
-    m4.metric("Different rows", different)
-
-    m5, m6, m7 = st.columns(3)
-    m5.metric("Debezium connector", connector)
-    m6.metric(
-        "Replication slot",
-        "active" if slot_ok else ("inactive" if slot else "not found"),
-    )
-    lag_bytes = slot["lag_bytes"] if slot and slot["lag_bytes"] is not None else "n/a"
-    m7.metric("WAL lag (bytes)", lag_bytes)
-
-    st.bar_chart(
-        pd.DataFrame({"trades": [len(legacy), len(cloud)]}, index=["Legacy", "Cloud"])
-    )
-    if in_sync:
-        st.success("Cloud matches legacy: nothing missing, extra or different.")
-    else:
-        st.warning(
-            f"Cloud differs from legacy: {missing} missing, "
-            f"{extra} extra, {different} different."
-        )
-
     shadow = st.session_state.get("shadow")
     shadow_ok = shadow is not None and shadow.cutover_allowed(missing)
-    st.subheader("Cutover decision")
     checks = [
-        ("Debezium connector and task RUNNING", connector_ok),
-        ("Replication slot active", slot_ok),
+        ("Debezium connector and task are RUNNING", connector_ok),
+        ("Replication slot is active", slot_ok),
         ("Cloud matches legacy (reconciliation clean)", in_sync),
-        ("Shadow validation run with 0 mismatches", shadow_ok),
+        ("Shadow validation passed with 0 mismatches", shadow_ok),
     ]
-    for label, passed in checks:
-        st.write(("PASS  " if passed else "FAIL  ") + label)
-    if all(passed for _, passed in checks):
-        st.success("CUTOVER ALLOWED")
-    else:
-        st.error("CUTOVER BLOCKED")
+    allowed = all(ok for _, ok in checks)
 
-    left, right = st.columns(2)
-    for column, name, data in (
-        (left, "Legacy", legacy),
-        (right, "Cloud", cloud),
-    ):
-        column.caption(f"Latest {name} trades")
-        recent = sorted(data.values(), key=lambda row: row["report_id"], reverse=True)[:10]
-        column.dataframe(pd.DataFrame(recent), hide_index=True)
+    hero(allowed, "CUTOVER ALLOWED" if allowed else "CUTOVER BLOCKED", subtitle)
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        kpi("Legacy trades", len(a), "source of truth", "#38bdf8")
+    with c2:
+        kpi("Cloud trades", len(b), target, "#a78bfa")
+    with c3:
+        kpi("Missing in cloud", missing, "waiting to be copied" if missing else "nothing waiting",
+            "#f59e0b" if missing else "#22c55e")
+    with c4:
+        kpi("Different rows", different, "values disagree" if different else "all values match",
+            "#ef4444" if different else "#22c55e")
+
+    section("🔗", "Data pipeline")
+    slot_text = "log slot active" if slot_ok else "log slot inactive"
+    nodes = [
+        node_html("🗄️", "Legacy PostgreSQL", "online", "ok", "keeps accepting trades"),
+        node_html("📡", "Debezium", state.lower(), "ok" if connector_ok else "bad", slot_text),
+        node_html("🚌", "Kafka topic", "streaming" if connector_ok else "waiting",
+                  "ok" if connector_ok else "warn", "legacy.public.trades"),
+        node_html("⚙️", "Python consumer", "on demand", "idle", "runs with the demo"),
+        node_html("☁️", "Cloud database", "online", "ok", target),
+    ]
+    render('<div class="pipe">' + '<div class="arrow">➜</div>'.join(nodes) + '</div>')
+    lag_bytes = slot["lag_bytes"] if slot and slot["lag_bytes"] is not None else "n/a"
+    st.caption(f"Replication slot lag: {lag_bytes} bytes")
+
+    section("🧭", "Cutover decision")
+    total = len(a)
+    pct_sync = 100 if total == 0 else max(0, round(100 * (total - missing) / total))
+    if not in_sync:
+        pct_sync = min(pct_sync, 99)
+    left, right = st.columns([1, 2])
+    with left:
+        donut(pct_sync, "in sync" if in_sync else "syncing", in_sync)
+    with right:
+        for label, ok in checks:
+            check(label, ok)
+
+    section("📋", "Latest trades")
+    tab_legacy, tab_cloud = st.tabs(["Legacy", "Cloud"])
+    for tab, data in ((tab_legacy, a), (tab_cloud, b)):
+        with tab:
+            recent = sorted(data.values(), key=lambda r: r["report_id"], reverse=True)[:10]
+            st.dataframe(pd.DataFrame(recent), hide_index=True)
 
 
-st.title("Migration Dashboard")
-st.caption(
-    "Legacy PostgreSQL to cloud PostgreSQL through Debezium and Kafka. "
-    "Local simulation."
-)
+with st.sidebar:
+    st.markdown("### Controls")
+    auto = st.toggle("Auto-refresh every 5 seconds", value=False)
+    st.button("Refresh now")
+    st.caption("Reads both databases and the Debezium connector. "
+               "It never changes your data.")
 
-if st.sidebar.button("Sign out"):
-    st.session_state["authenticated"] = False
-    st.rerun()
+st.fragment(run_every=5 if auto else None)(live_panel)()
 
-auto_refresh = st.sidebar.toggle("Auto-refresh every 5 seconds", value=False)
-st.sidebar.button("Refresh now")
-
-st.header("1. Live status")
-if hasattr(st, "fragment"):
-    st.fragment(run_every=5 if auto_refresh else None)(live_panel)()
-else:
-    live_panel()
-
-st.header("2. Shadow validation")
-st.caption(
-    "Runs the same requests through the legacy rule and the cloud rule "
-    "and compares the results."
-)
-col_a, col_b = st.columns(2)
-count = col_a.number_input(
-    "Number of comparisons", min_value=10, max_value=500, value=30, step=10
-)
+section("🧪", "Shadow validation")
+st.caption("Runs the same requests through the legacy rule and the cloud rule and compares the results.")
+col_a, col_b, col_c = st.columns(3)
+count = col_a.number_input("Number of comparisons", min_value=10, max_value=500, value=30, step=10)
 inject_bug = col_b.checkbox("Inject cloud rounding bug (negative test)")
-if st.button("Run shadow validation"):
+if col_c.button("Run shadow validation"):
     result = Shadow()
-    for quantity in range(100, 100 + int(count)):
-        request = dict(symbol="ABC", quantity=quantity, price="25.50")
-        result.compare(
-            SimulatedSystem(),
-            SimulatedSystem(inject_bug),
-            request,
-        )
+    for qty in range(100, 100 + int(count)):
+        result.compare(SimulatedSystem(), SimulatedSystem(inject_bug),
+                       dict(symbol="ABC", quantity=qty, price="25.50"))
     st.session_state["shadow"] = result
     st.rerun()
 
@@ -716,22 +332,27 @@ if shadow is None:
     st.info("Shadow validation has not been run yet.")
 else:
     s1, s2, s3, s4 = st.columns(4)
-    s1.metric("Compared", shadow.total)
-    s2.metric("Matched", shadow.match)
-    s3.metric("Mismatched", shadow.mismatch)
-    s4.metric("Errors", shadow.errors)
+    with s1:
+        kpi("Compared", shadow.total, "same requests, both rules", "#38bdf8")
+    with s2:
+        kpi("Matched", shadow.match, "identical results", "#22c55e")
+    with s3:
+        kpi("Mismatched", shadow.mismatch, "different results",
+            "#ef4444" if shadow.mismatch else "#22c55e")
+    with s4:
+        kpi("Errors", shadow.errors, "failed comparisons", "#ef4444" if shadow.errors else "#22c55e")
+    rate = shadow.match / shadow.total if shadow.total else 0
+    st.progress(rate, text=f"Match rate {rate:.0%}")
     if shadow.reasons:
-        st.dataframe(
-            pd.DataFrame({"Mismatch details (first 10)": shadow.reasons[:10]}),
-            hide_index=True,
-        )
+        st.dataframe(pd.DataFrame({"Mismatch details (first 10)": shadow.reasons[:10]}),
+                     hide_index=True)
 
-st.header("3. Canary rollout (gate demo)")
+section("🚦", "Canary rollout")
 st.caption("Shows how the real canary gate behaves. It does not change a live router.")
 percent = st.session_state.setdefault("pct", 0)
-st.progress(percent / 100, text=f"Traffic to cloud: {percent}%")
-advance_button, rollback_button = st.columns(2)
-if advance_button.button("Advance one step (0, 5, 25, 50, 100)"):
+stepper(percent)
+btn_a, btn_b, _ = st.columns([1, 1, 2])
+if btn_a.button("Advance one step"):
     lag = st.session_state.get("lag")
     if lag is None:
         st.warning("Live data is unavailable, so the gate stays closed.")
@@ -742,6 +363,9 @@ if advance_button.button("Advance one step (0, 5, 25, 50, 100)"):
             st.rerun()
         else:
             st.warning("Blocked: the gates are not met. See the cutover decision above.")
-if rollback_button.button("Roll back to 0%"):
+if btn_b.button("Roll back to 0%"):
     st.session_state["pct"] = 0
     st.rerun()
+
+st.caption("Local simulation. The shadow validation and canary panels demonstrate the gate logic "
+           "and do not control a live router.")
