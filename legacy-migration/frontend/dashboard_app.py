@@ -24,97 +24,43 @@ COLS = "report_id, symbol, quantity, price, notional, fee"
 
 st.set_page_config(page_title="Migration Control Center", page_icon="🛰️", layout="wide")
 
-CSS = """
-<style>
-.block-container{padding-top:1.5rem;max-width:1250px}
-header[data-testid="stHeader"]{background:transparent}
-#MainMenu,footer{visibility:hidden}
-.hero{background:linear-gradient(120deg,#0f172a 0%,#1e3a8a 55%,#6d28d9 100%);border-radius:20px;
-padding:28px 34px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:20px;
-box-shadow:0 10px 40px rgba(79,70,229,.35);margin-bottom:22px}
-.hero h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:.3px;color:#fff}
-.hero p{margin:6px 0 0;opacity:.85;font-size:.95rem;max-width:640px}
-.verdict{padding:14px 26px;border-radius:999px;font-weight:800;letter-spacing:1.5px;font-size:1.05rem;white-space:nowrap;color:#fff}
-.verdict.ok{background:#16a34a;box-shadow:0 0 0 6px rgba(34,197,94,.25)}
-.verdict.bad{background:#dc2626;box-shadow:0 0 0 6px rgba(239,68,68,.25)}
-.sec{font-size:1.15rem;font-weight:700;margin:28px 0 12px;color:#e2e8f0;display:flex;align-items:center;gap:10px}
-.sec .bar{width:5px;height:22px;border-radius:3px;background:linear-gradient(#38bdf8,#a78bfa)}
-.kpi{background:linear-gradient(145deg,#111827,#1f2937);border:1px solid #334155;border-radius:16px;
-padding:18px 20px 16px 24px;position:relative;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.3)}
-.kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
-.kpi .lab{color:#94a3b8;font-size:.78rem;text-transform:uppercase;letter-spacing:1.2px}
-.kpi .val{font-size:2.3rem;font-weight:800;color:#f8fafc;line-height:1.15}
-.kpi .sub{color:#64748b;font-size:.78rem}
-.pipe{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
-.node{flex:1;min-width:150px;background:#0f172a;border:1px solid #334155;border-radius:16px;padding:16px 10px;text-align:center}
-.node .ico{font-size:1.8rem}
-.node .nm{font-weight:700;color:#f1f5f9;margin-top:4px}
-.node .st{font-size:.76rem;margin-top:8px;display:inline-block;padding:3px 12px;border-radius:999px;font-weight:700}
-.node .sub{color:#64748b;font-size:.74rem;margin-top:8px}
-.st.ok{background:rgba(34,197,94,.15);color:#4ade80}
-.st.bad{background:rgba(239,68,68,.15);color:#f87171}
-.st.warn{background:rgba(245,158,11,.15);color:#fbbf24}
-.st.idle{background:rgba(148,163,184,.15);color:#cbd5e1}
-.arrow{align-self:center;font-size:1.5rem;color:#38bdf8}
-.donut{width:170px;height:170px;border-radius:50%;display:grid;place-items:center;margin:6px auto}
-.hole{width:126px;height:126px;border-radius:50%;background:#0b1020;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.hole b{font-size:2rem;color:#f8fafc}
-.hole span{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px}
-.chk{display:flex;align-items:center;gap:12px;padding:11px 16px;margin-bottom:8px;border-radius:12px;
-background:#0f172a;border:1px solid #334155;color:#e2e8f0;font-weight:600}
-.chk .dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:.9rem;font-weight:800;color:#fff}
-.chk.ok{border-color:rgba(34,197,94,.5)}
-.chk.ok .dot{background:#16a34a}
-.chk.bad{border-color:rgba(239,68,68,.5)}
-.chk.bad .dot{background:#dc2626}
-.stepper{display:flex;align-items:center;margin:8px 0 14px}
-.stepper .c{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;font-weight:800;
-border:2px solid #334155;color:#94a3b8;background:#0f172a}
-.stepper .done .c{background:#16a34a;border-color:#16a34a;color:#fff}
-.stepper .cur .c{background:linear-gradient(135deg,#6366f1,#a855f7);border-color:#a78bfa;color:#fff;box-shadow:0 0 0 6px rgba(139,92,246,.25)}
-.stepper .line{flex:1;height:3px;background:#334155;margin:0 6px}
-.stButton>button,div[data-testid="stButton"]>button{border-radius:12px;font-weight:700;border:0;
-background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;padding:.55rem 1.3rem}
-.stButton>button:hover,div[data-testid="stButton"]>button:hover{filter:brightness(1.15);color:#fff}
-.login-shell{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;background:#031421;padding:0 0 40px;margin:0 -1rem 0 -1rem}
-.login-card{max-width:1280px;width:100%;padding:14px 0 0;border-radius:0;background:transparent;border:0;box-shadow:none}
-.login-brand{font-size:3rem;font-weight:800;color:#f4f6f8;text-align:center;margin:0 0 14px}
-.login-sub{font-size:1.05rem;color:#dfe7ef;line-height:1.5;text-align:left;margin:0 0 18px;padding-left:0}
-.login-form{padding-top:0}
-[data-testid="stForm"]{display:block}
-[data-testid="stBaseInputLabel"]{font-size:1rem;font-weight:700;color:#f4f7fb;margin-bottom:8px}
-[data-testid="stTextInputRoot"], [data-testid="stBaseInputContainer"]{border-radius:12px !important; border:1px solid rgba(177,189,204,.55) !important; background:#f5f5f5 !important;}
-.stTextInput>div>div>input, .stTextInput input, .stTextInput>div>div>input:focus, .stTextInput input:focus{border-radius:12px !important; background:#f5f5f5 !important; color:#1b2430 !important; font-size:1.1rem !important; box-shadow:none !important;}
-.stTextInput input::placeholder{color:#8e97a1; font-size:1rem;}
-.stButton>button,div[data-testid="stButton"]>button{width:100%;border-radius:12px;font-weight:700;border:1px solid rgba(164,175,191,.65);background:#2f3c4f;color:#f3f5f8;padding:.7rem 1.2rem;font-size:1.1rem;box-shadow:none;margin-top:18px}
-.stButton>button:hover,div[data-testid="stButton"]>button:hover{filter:brightness(1.06);color:#fff}
-</style>
-"""
-
-
 def render(markup):
     st.markdown("".join(line.strip() for line in markup.splitlines()), unsafe_allow_html=True)
 
 
-render(CSS)
+def load_stylesheet():
+    """Load the frontend stylesheet used by the Streamlit dashboard."""
+    stylesheet_path = pathlib.Path(__file__).with_name("style.css")
+    stylesheet = stylesheet_path.read_text(encoding="utf-8")
+    st.markdown(f"<style>{stylesheet}</style>", unsafe_allow_html=True)
+
+
+load_stylesheet()
 
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
+if "auto_refresh" not in st.session_state:
+    st.session_state.auto_refresh = False
+if "refresh_interval" not in st.session_state:
+    st.session_state.refresh_interval = 5
 
 
 def login_screen():
-    st.markdown("<div class='login-shell'>", unsafe_allow_html=True)
-    st.markdown("<div class='login-card'>", unsafe_allow_html=True)
-    st.markdown("<h1 class='login-brand'>Welcome</h1>", unsafe_allow_html=True)
-    st.markdown("<div class='login-sub'>Sign in to access the migration control dashboard.</div>", unsafe_allow_html=True)
-
-    with st.form("login_form", clear_on_submit=False):
-        st.markdown("<div class='login-form'>", unsafe_allow_html=True)
-        username = st.text_input("Username", placeholder="Enter your username")
-        password = st.text_input("Password", type="password", placeholder="Enter your password")
-        submitted = st.form_submit_button("Sign in")
-        st.markdown("</div>", unsafe_allow_html=True)
+    with st.container(key="login-page"):
+        with st.form("login_form", clear_on_submit=False):
+            render(
+                "<h1 class='login-title'>Welcome back</h1>"
+                "<p class='login-sub'>Sign in to access the migration control dashboard.</p>"
+            )
+            username = st.text_input("Username", placeholder="Enter your username")
+            password = st.text_input("Password", type="password", placeholder="Enter your password")
+            submitted = st.form_submit_button("Sign in")
+            render('<p class="login-foot">Authorized team members only.</p>')
+            render(
+                '<p class="login-contact">Can\'t sign in? '
+                '<a href="mailto:support@versatile.com">Contact us</a></p>'
+            )
 
     if submitted:
         if credentials_match(username, password):
@@ -123,8 +69,6 @@ def login_screen():
         else:
             st.error("Invalid username or password.")
 
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 
@@ -307,12 +251,25 @@ def live_panel():
 
 with st.sidebar:
     st.markdown("### Controls")
-    auto = st.toggle("Auto-refresh every 5 seconds", value=False)
     st.button("Refresh now")
+    st.toggle("Auto-refresh", key="auto_refresh")
+    st.selectbox(
+        "Refresh interval",
+        [5, 10, 30],
+        format_func=lambda seconds: f"{seconds} seconds",
+        key="refresh_interval",
+        disabled=not st.session_state.auto_refresh,
+    )
     st.caption("Reads both databases and the Debezium connector. "
                "It never changes your data.")
+    st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
+    if st.button("Logout", use_container_width=True, key="logout_btn"):
+        st.session_state.authenticated = False
+        st.session_state.pop("shadow", None)
+        st.rerun()
 
-st.fragment(run_every=5 if auto else None)(live_panel)()
+refresh_interval = st.session_state.refresh_interval if st.session_state.auto_refresh else None
+st.fragment(run_every=refresh_interval)(live_panel)()
 
 section("🧪", "Shadow validation")
 st.caption("Runs the same requests through the legacy rule and the cloud rule and compares the results.")
