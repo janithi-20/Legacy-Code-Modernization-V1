@@ -1,9 +1,11 @@
+from turtle import reset
+
 from app.common import TradeStore
 from app.config import CLOUD_DSN
 
 class Cloud(TradeStore):
-    def __init__(self, bug=False):
-        super().__init__(CLOUD_DSN, bug)
+    def __init__(self, bug=False, reset=True):
+     super().__init__(CLOUD_DSN, bug, reset=reset)
 
     def submit(self, report_id, symbol, quantity, price):
         if not self.healthy:

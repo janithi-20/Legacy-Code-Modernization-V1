@@ -174,7 +174,8 @@ class SimulatedSystem:
 def live_panel():
     target = "Amazon RDS (AWS)" if "amazonaws.com" in CLOUD_DSN else "Docker database"
     subtitle = ("Legacy trade reporting to the cloud with real-time CDC, shadow validation "
-                f"and canary rollout. Cloud target: {target}")
+                f"and canary rollout. "
+                f"Cloud target: {target}")
     try:
         a = Reader(LEGACY_DSN).all()
         b = Reader(CLOUD_DSN).all()
@@ -223,9 +224,9 @@ def live_panel():
     nodes = [
         node_html("🗄️", "Legacy PostgreSQL", "online", "ok"),
         node_html("📡", "Debezium", state.lower(), "ok" if connector_ok else "bad"),
-        node_html("🚌", "Kafka topic", "streaming" if connector_ok else "waiting",
+        node_html("🚌", "Kafka ", "streaming" if connector_ok else "waiting",
                   "ok" if connector_ok else "warn"),
-        node_html("⚙️", "Python consumer", "on demand", "idle"),
+        node_html("⚙️", "Python consumer", "running", "idle"),
         node_html("☁️", "Cloud database", "online", "ok"),
     ]
     render('<div class="pipe">' + '<div class="arrow">➜</div>'.join(nodes) + '</div>')
@@ -288,7 +289,7 @@ shadow = st.session_state.get("shadow")
 if shadow is None:
     st.info("Shadow validation has not been run yet.")
 else:
-    s1, s2, s3 = st.columns(3)
+    s1, s2, s3, s4 = st.columns(4)
     with s1:
         kpi("Compared", shadow.total, "same requests, both rules", "#38bdf8")
     with s2:
@@ -296,6 +297,8 @@ else:
     with s3:
         kpi("Mismatched", shadow.mismatch, "different results",
             "#ef4444" if shadow.mismatch else "#22c55e")
+    with s4:
+        kpi("Errors", shadow.errors, "failed comparisons", "#ef4444" if shadow.errors else "#22c55e")
     rate = shadow.match / shadow.total if shadow.total else 0
     st.progress(rate, text=f"Match rate {rate:.0%}")
     if shadow.reasons:

@@ -20,12 +20,15 @@ def calc(quantity, price, bug=False):
     return str(notional), str(fee)
 
 class TradeStore:
-    def __init__(self, dsn, bug=False):
+    def __init__(self, dsn, bug=False, reset=True):
         self.bug, self.healthy = bug, True
         self.db = psycopg.connect(dsn, autocommit=True, row_factory=dict_row)
         self.db.execute(SCHEMA)
         # demo/test setup: start every run from empty tables
-        self.db.execute("TRUNCATE trades, change_log, cdc_offset RESTART IDENTITY")
+        if reset:
+         self.db.execute(
+        "TRUNCATE trades, change_log, cdc_offset RESTART IDENTITY"
+    )
 
     def compute(self, symbol, quantity, price):
         return calc(quantity, price, self.bug)

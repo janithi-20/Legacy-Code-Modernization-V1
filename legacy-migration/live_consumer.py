@@ -3,16 +3,27 @@ import time
 from app.cdc.kafka_consumer import CdcConsumer
 from app.cloud.service import Cloud
 
-cloud = Cloud()
-cdc = CdcConsumer(f"live-{int(time.time())}", from_end=True)
-print("Live consumer running. Press Ctrl+C to stop.")
+# Do not clear existing cloud database records
+cloud = Cloud(reset=False)
+
+# Use a fixed group ID to resume from the last committed offset
+cdc = CdcConsumer("legacy-cloud-applier", from_end=True)
+
+print("Live CDC consumer running.")
+print("Listening to:", "legacy.public.trades")
+print("Press Ctrl+C to stop.")
+
 try:
     while True:
         applied = cdc.drain(cloud, idle=1.0)
+
         if applied:
-            print(f"applied {applied} change(s) to the cloud")
+            print(f"Applied {applied} change(s) to the cloud database")
+
 except KeyboardInterrupt:
-    pass
+    print("Stopping consumer...")
+
 finally:
     cdc.close()
-    print("Stopped.")
+    cloud.db.close()
+    print("Live consumer stopped.")

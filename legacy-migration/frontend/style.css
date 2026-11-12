@@ -160,7 +160,7 @@ footer {
 
 .st.ok {
     background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
+    color: rgb(74, 222, 128);
 }
 
 .st.bad {
@@ -174,8 +174,8 @@ footer {
 }
 
 .st.idle {
-    background: rgba(148, 163, 184, 0.15);
-    color: #cbd5e1;
+    background: rgba(2, 211, 148, 0.15);
+    color: #4ade80;
 }
 
 .arrow {
