@@ -288,7 +288,7 @@ shadow = st.session_state.get("shadow")
 if shadow is None:
     st.info("Shadow validation has not been run yet.")
 else:
-    s1, s2, s3, s4 = st.columns(4)
+    s1, s2, s3 = st.columns(3)
     with s1:
         kpi("Compared", shadow.total, "same requests, both rules", "#38bdf8")
     with s2:
@@ -296,8 +296,6 @@ else:
     with s3:
         kpi("Mismatched", shadow.mismatch, "different results",
             "#ef4444" if shadow.mismatch else "#22c55e")
-    with s4:
-        kpi("Errors", shadow.errors, "failed comparisons", "#ef4444" if shadow.errors else "#22c55e")
     rate = shadow.match / shadow.total if shadow.total else 0
     st.progress(rate, text=f"Match rate {rate:.0%}")
     if shadow.reasons:
