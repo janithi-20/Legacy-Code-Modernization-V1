@@ -1,4 +1,5 @@
 import json
+import os
 import pathlib
 import sys
 import urllib.error
@@ -19,7 +20,10 @@ from app.validation.reconciliation import reconcile
 from app.validation.shadow import Shadow
 from backend.auth import credentials_match
 
-CONNECTOR_URL = "http://localhost:8083/connectors/legacy-trades-connector/status"
+CONNECTOR_URL = os.getenv(
+    "CONNECTOR_URL",
+    "http://localhost:8083/connectors/legacy-trades-connector/status",
+)
 COLS = "report_id, symbol, quantity, price, notional, fee"
 
 st.set_page_config(page_title="Migration Control Center", page_icon="🛰️", layout="wide")
