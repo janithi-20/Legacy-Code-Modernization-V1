@@ -2,6 +2,7 @@ import os
 import time
 
 import psycopg
+from psycopg.rows import dict_row
 
 from app.common import SCHEMA
 
@@ -33,10 +34,27 @@ def ensure_demo_data(dsn):
         )
 
 
+def backfill_trade_values(legacy_dsn, cloud_dsn):
+    with psycopg.connect(legacy_dsn, row_factory=dict_row, autocommit=True) as legacy:
+        rows = legacy.execute(
+            "SELECT report_id, notional, fee FROM trades "
+            "WHERE notional IS NOT NULL AND fee IS NOT NULL"
+        ).fetchall()
+    with psycopg.connect(cloud_dsn, autocommit=True) as cloud:
+        for row in rows:
+            cloud.execute(
+                "UPDATE trades SET notional=%s, fee=%s "
+                "WHERE report_id=%s AND (notional IS NULL OR fee IS NULL)",
+                (row["notional"], row["fee"], row["report_id"]),
+            )
+
+
 if __name__ == "__main__":
     legacy_dsn = os.environ["LEGACY_DSN"]
     cloud_dsn = os.environ["CLOUD_DSN"]
     wait_for_database(legacy_dsn, "Legacy")
     wait_for_database(cloud_dsn, "Cloud")
-    ensure_demo_data(legacy_dsn)
-    ensure_demo_data(cloud_dsn)
+    if os.getenv("SEED_DEMO_DATA", "").lower() in {"1", "true", "yes"}:
+        ensure_demo_data(legacy_dsn)
+        ensure_demo_data(cloud_dsn)
+    backfill_trade_values(legacy_dsn, cloud_dsn)

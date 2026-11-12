@@ -1,4 +1,5 @@
 import json
+import os
 import pathlib
 import sys
 import urllib.error
@@ -19,7 +20,10 @@ from app.validation.reconciliation import reconcile
 from app.validation.shadow import Shadow
 from backend.auth import credentials_match
 
-CONNECTOR_URL = "http://localhost:8083/connectors/legacy-trades-connector/status"
+CONNECTOR_URL = os.getenv(
+    "CONNECTOR_URL",
+    "http://localhost:8083/connectors/legacy-trades-connector/status",
+)
 COLS = "report_id, symbol, quantity, price, notional, fee"
 
 st.set_page_config(page_title="Migration Control Center", page_icon="🛰️", layout="wide")
@@ -168,7 +172,7 @@ class SimulatedSystem:
 
 
 def live_panel():
-    target = "Amazon RDS (AWS)" if "amazonaws.com" in CLOUD_DSN else "local Docker database"
+    target = "Amazon RDS (AWS)" if "amazonaws.com" in CLOUD_DSN else "Docker database"
     subtitle = ("Legacy trade reporting to the cloud with real-time CDC, shadow validation "
                 f"and canary rollout. Cloud target: {target}")
     try:
@@ -216,18 +220,15 @@ def live_panel():
             "#ef4444" if different else "#22c55e")
 
     section("🔗", "Data pipeline")
-    slot_text = "log slot active" if slot_ok else "log slot inactive"
     nodes = [
-        node_html("🗄️", "Legacy PostgreSQL", "online", "ok", "keeps accepting trades"),
-        node_html("📡", "Debezium", state.lower(), "ok" if connector_ok else "bad", slot_text),
+        node_html("🗄️", "Legacy PostgreSQL", "online", "ok"),
+        node_html("📡", "Debezium", state.lower(), "ok" if connector_ok else "bad"),
         node_html("🚌", "Kafka topic", "streaming" if connector_ok else "waiting",
-                  "ok" if connector_ok else "warn", "legacy.public.trades"),
-        node_html("⚙️", "Python consumer", "on demand", "idle", "runs with the demo"),
-        node_html("☁️", "Cloud database", "online", "ok", target),
+                  "ok" if connector_ok else "warn"),
+        node_html("⚙️", "Python consumer", "on demand", "idle"),
+        node_html("☁️", "Cloud database", "online", "ok"),
     ]
     render('<div class="pipe">' + '<div class="arrow">➜</div>'.join(nodes) + '</div>')
-    lag_bytes = slot["lag_bytes"] if slot and slot["lag_bytes"] is not None else "n/a"
-    st.caption(f"Replication slot lag: {lag_bytes} bytes")
 
     section("🧭", "Cutover decision")
     total = len(a)
@@ -251,7 +252,6 @@ def live_panel():
 
 with st.sidebar:
     st.markdown("### Controls")
-    st.button("Refresh now")
     st.toggle("Auto-refresh", key="auto_refresh")
     st.selectbox(
         "Refresh interval",
