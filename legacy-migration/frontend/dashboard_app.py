@@ -229,8 +229,6 @@ def live_panel():
         node_html("☁️", "Cloud database", "online", "ok"),
     ]
     render('<div class="pipe">' + '<div class="arrow">➜</div>'.join(nodes) + '</div>')
-    lag_bytes = slot["lag_bytes"] if slot and slot["lag_bytes"] is not None else "n/a"
-    st.caption(f"Replication slot lag: {lag_bytes} bytes")
 
     section("🧭", "Cutover decision")
     total = len(a)
@@ -254,7 +252,6 @@ def live_panel():
 
 with st.sidebar:
     st.markdown("### Controls")
-    st.button("Refresh now")
     st.toggle("Auto-refresh", key="auto_refresh")
     st.selectbox(
         "Refresh interval",
