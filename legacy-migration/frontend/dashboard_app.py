@@ -51,8 +51,8 @@ if "refresh_interval" not in st.session_state:
     st.session_state.refresh_interval = 5
 if "database_initialization_error" not in st.session_state:
     try:
-        initialize_database(LEGACY_DSN, reconcile_defaults=False)
-        initialize_database(CLOUD_DSN, reconcile_defaults=False)
+        initialize_database(LEGACY_DSN)
+        initialize_database(CLOUD_DSN)
     except (OSError, psycopg.Error, RuntimeError) as exc:
         st.session_state.database_initialization_error = str(exc)
     else:
