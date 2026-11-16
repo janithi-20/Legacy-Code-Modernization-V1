@@ -1,5 +1,3 @@
-from turtle import reset
-
 from app.common import TradeStore
 from app.config import CLOUD_DSN
 

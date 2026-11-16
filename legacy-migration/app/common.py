@@ -9,6 +9,18 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS trades(
     report_id TEXT PRIMARY KEY, symbol TEXT, quantity INTEGER,
     price TEXT, notional TEXT, fee TEXT, seq BIGINT DEFAULT 0);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'trades' AND column_name = 'trade_id'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'trades' AND column_name = 'report_id'
+    ) THEN
+        ALTER TABLE trades RENAME COLUMN trade_id TO report_id;
+    END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS change_log(seq BIGSERIAL PRIMARY KEY, payload TEXT);
 CREATE TABLE IF NOT EXISTS cdc_offset(id INTEGER PRIMARY KEY, value BIGINT);
 """

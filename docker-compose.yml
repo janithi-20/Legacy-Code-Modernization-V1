@@ -82,6 +82,23 @@ services:
       timeout: 5s
       retries: 30
 
+  cdc_consumer:
+    build:
+      context: ./legacy-migration
+    container_name: cdc_consumer
+    restart: on-failure
+    depends_on:
+      connect:
+        condition: service_healthy
+      cloud_db:
+        condition: service_healthy
+    environment:
+      LEGACY_DSN: postgresql://postgres:postgres@legacy_db:5432/legacy?connect_timeout=5
+      CLOUD_DSN: postgresql://postgres:postgres@cloud_db:5432/cloud?connect_timeout=5
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      DEBEZIUM_TOPIC: legacy.public.trades
+    command: ["python", "live_consumer.py"]
+
   dashboard:
     build:
       context: ./legacy-migration

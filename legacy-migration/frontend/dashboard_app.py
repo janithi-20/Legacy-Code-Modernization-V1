@@ -51,8 +51,8 @@ if "refresh_interval" not in st.session_state:
     st.session_state.refresh_interval = 5
 if "database_initialization_error" not in st.session_state:
     try:
-        initialize_database(LEGACY_DSN)
-        initialize_database(CLOUD_DSN)
+        initialize_database(LEGACY_DSN, reconcile_defaults=False)
+        initialize_database(CLOUD_DSN, reconcile_defaults=False)
     except (OSError, psycopg.Error, RuntimeError) as exc:
         st.session_state.database_initialization_error = str(exc)
     else:
@@ -186,8 +186,6 @@ def live_panel():
                 f"and canary rollout. "
                 f"Cloud target: {target}")
     try:
-        initialize_database(LEGACY_DSN)
-        initialize_database(CLOUD_DSN)
         st.session_state.database_initialization_error = None
         a = Reader(LEGACY_DSN).all()
         b = Reader(CLOUD_DSN).all()
@@ -281,8 +279,10 @@ with st.sidebar:
         st.session_state.pop("shadow", None)
         st.rerun()
 
-refresh_interval = st.session_state.refresh_interval if st.session_state.auto_refresh else None
-st.fragment(run_every=refresh_interval)(live_panel)()
+if st.session_state.auto_refresh:
+    st.fragment(run_every=f"{st.session_state.refresh_interval}s")(live_panel)()
+else:
+    live_panel()
 
 section("🧪", "Shadow validation")
 st.caption("Runs the same requests through the legacy rule and the cloud rule and compares the results.")
