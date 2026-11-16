@@ -246,11 +246,11 @@ def live_panel():
     section("🧭", "Cutover decision")
     total = len(a)
     pct_sync = 100 if total == 0 else max(0, round(100 * (total - missing) / total))
-    if not in_sync:
+    if not allowed:
         pct_sync = min(pct_sync, 99)
     left, right = st.columns([1, 2])
     with left:
-        donut(pct_sync, "in sync" if in_sync else "syncing", in_sync)
+        donut(pct_sync, "cutover ready" if allowed else "gates pending", allowed)
     with right:
         for label, ok in checks:
             check(label, ok)
@@ -301,7 +301,7 @@ shadow = st.session_state.get("shadow")
 if shadow is None:
     st.info("Shadow validation has not been run yet.")
 else:
-    s1, s2, s3, s4 = st.columns(4)
+    s1, s2, s3 = st.columns(3)
     with s1:
         kpi("Compared", shadow.total, "same requests, both rules", "#38bdf8")
     with s2:
@@ -309,8 +309,6 @@ else:
     with s3:
         kpi("Mismatched", shadow.mismatch, "different results",
             "#ef4444" if shadow.mismatch else "#22c55e")
-    with s4:
-        kpi("Errors", shadow.errors, "failed comparisons", "#ef4444" if shadow.errors else "#22c55e")
     rate = shadow.match / shadow.total if shadow.total else 0
     st.progress(rate, text=f"Match rate {rate:.0%}")
     if shadow.reasons:
