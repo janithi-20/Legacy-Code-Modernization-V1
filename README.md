@@ -50,6 +50,8 @@ Password: migration
 
 The dashboard displays reconciliation, Debezium connector status,
 replication-slot status, shadow validation, and the canary decision.
+On startup, an empty database is populated with the 15 default trades used by
+the dashboard; the legacy two-row placeholder seed is upgraded automatically.
 
 To follow dashboard logs:
 
@@ -210,6 +212,15 @@ From `legacy-migration`:
 
 ```powershell
 python .\demo_kafka.py
+```
+
+This command exercises a direct producer/consumer flow on a temporary topic.
+It does not publish to the Debezium topic. To run the Debezium CDC scenario,
+first register the connector as described above, verify that
+`legacy.public.trades` exists, and then run:
+
+```powershell
+python .\demo_kafka.py --debezium
 ```
 
 The direct Kafka flow requires Kafka. The Debezium CDC flow also requires the

@@ -3,8 +3,8 @@ from app.common import TradeStore
 from app.config import LEGACY_DSN
 
 class Legacy(TradeStore):
-    def __init__(self, bug=False):
-        super().__init__(LEGACY_DSN, bug)
+    def __init__(self, bug=False, reset=True):
+        super().__init__(LEGACY_DSN, bug, reset=reset)
 
     def submit(self, report_id, symbol, quantity, price):
         row = self._row(report_id, symbol, quantity, price)

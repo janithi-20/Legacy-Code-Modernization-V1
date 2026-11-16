@@ -60,8 +60,10 @@ services:
     container_name: connect
     restart: on-failure
     depends_on:
-      - kafka
-      - legacy_db
+      kafka:
+        condition: service_started
+      legacy_db:
+        condition: service_healthy
     ports:
       - "8083:8083"
     environment:
@@ -89,6 +91,8 @@ services:
       legacy_db:
         condition: service_healthy
       cloud_db:
+        condition: service_healthy
+      connect:
         condition: service_healthy
     environment:
       LEGACY_DSN: postgresql://postgres:postgres@legacy_db:5432/legacy?connect_timeout=5

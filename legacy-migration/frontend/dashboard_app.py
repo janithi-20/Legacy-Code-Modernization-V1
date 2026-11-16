@@ -18,6 +18,7 @@ from app.config import CLOUD_DSN, LEGACY_DSN
 from app.migration.canary import STEPS, advance
 from app.validation.reconciliation import reconcile
 from app.validation.shadow import Shadow
+from backend.bootstrap import initialize_database
 from backend.auth import credentials_match
 
 CONNECTOR_URL = os.getenv(
@@ -48,6 +49,14 @@ if "auto_refresh" not in st.session_state:
     st.session_state.auto_refresh = False
 if "refresh_interval" not in st.session_state:
     st.session_state.refresh_interval = 5
+if "database_initialization_error" not in st.session_state:
+    try:
+        initialize_database(LEGACY_DSN, reconcile_defaults=False)
+        initialize_database(CLOUD_DSN, reconcile_defaults=False)
+    except (OSError, psycopg.Error, RuntimeError) as exc:
+        st.session_state.database_initialization_error = str(exc)
+    else:
+        st.session_state.database_initialization_error = None
 
 
 def login_screen():
@@ -177,6 +186,9 @@ def live_panel():
                 f"and canary rollout. "
                 f"Cloud target: {target}")
     try:
+        initialize_database(LEGACY_DSN)
+        initialize_database(CLOUD_DSN)
+        st.session_state.database_initialization_error = None
         a = Reader(LEGACY_DSN).all()
         b = Reader(CLOUD_DSN).all()
         slot = slot_info()

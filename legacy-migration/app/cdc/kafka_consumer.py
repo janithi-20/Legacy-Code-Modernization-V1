@@ -1,16 +1,33 @@
 import json
+import os
 import time
 from confluent_kafka import Consumer, TopicPartition, OFFSET_BEGINNING
 
-TOPIC = "legacy.public.trades"
+BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+TOPIC = os.getenv("DEBEZIUM_TOPIC", "legacy.public.trades")
 COLS = ["report_id", "symbol", "quantity", "price", "notional", "fee"]
 
 
 class CdcConsumer:
     def __init__(self, group, from_end=False, start=None):
-        self.c = Consumer({"bootstrap.servers": "localhost:9092",
+        self.c = Consumer({"bootstrap.servers": BOOTSTRAP_SERVERS,
                            "group.id": group,
                            "enable.auto.commit": False})
+        metadata = self.c.list_topics(topic=TOPIC, timeout=10)
+        topic_metadata = metadata.topics.get(TOPIC)
+        if topic_metadata is None or topic_metadata.error is not None:
+            self.c.close()
+            raise RuntimeError(
+                f"Kafka topic {TOPIC!r} is unavailable at "
+                f"{BOOTSTRAP_SERVERS}. Register or start the Debezium connector "
+                "before starting the CDC consumer."
+            )
+        if 0 not in topic_metadata.partitions:
+            self.c.close()
+            raise RuntimeError(
+                f"Kafka topic {TOPIC!r} has no partition 0 at "
+                f"{BOOTSTRAP_SERVERS}."
+            )
         tp = TopicPartition(TOPIC, 0)
         committed = self.c.committed([tp], timeout=10)[0].offset
         if start is not None:
