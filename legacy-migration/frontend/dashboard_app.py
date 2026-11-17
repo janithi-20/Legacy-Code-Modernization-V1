@@ -291,9 +291,16 @@ count = col_a.number_input("Number of comparisons", min_value=10, max_value=500,
 inject_bug = col_b.checkbox("Inject cloud rounding bug (negative test)")
 if col_c.button("Run shadow validation"):
     result = Shadow()
-    for qty in range(100, 100 + int(count)):
-        result.compare(SimulatedSystem(), SimulatedSystem(inject_bug),
-                       dict(symbol="ABC", quantity=qty, price="25.50"))
+    legacy_rows = sorted(
+        Reader(LEGACY_DSN).all().values(),
+        key=lambda row: row["report_id"],
+    )
+    for row in legacy_rows[:int(count)]:
+        result.compare(
+            SimulatedSystem(),
+            SimulatedSystem(inject_bug),
+            dict(symbol=row["symbol"], quantity=row["quantity"], price=row["price"]),
+        )
     st.session_state["shadow"] = result
     st.rerun()
 
