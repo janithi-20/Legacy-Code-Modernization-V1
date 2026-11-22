@@ -9,6 +9,18 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS trades(
     report_id TEXT PRIMARY KEY, symbol TEXT, quantity INTEGER,
     price TEXT, notional TEXT, fee TEXT, seq BIGINT DEFAULT 0);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'trades' AND column_name = 'trade_id'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'trades' AND column_name = 'report_id'
+    ) THEN
+        ALTER TABLE trades RENAME COLUMN trade_id TO report_id;
+    END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS change_log(seq BIGSERIAL PRIMARY KEY, payload TEXT);
 CREATE TABLE IF NOT EXISTS cdc_offset(id INTEGER PRIMARY KEY, value BIGINT);
 """
@@ -20,12 +32,15 @@ def calc(quantity, price, bug=False):
     return str(notional), str(fee)
 
 class TradeStore:
-    def __init__(self, dsn, bug=False):
+    def __init__(self, dsn, bug=False, reset=True):
         self.bug, self.healthy = bug, True
         self.db = psycopg.connect(dsn, autocommit=True, row_factory=dict_row)
         self.db.execute(SCHEMA)
         # demo/test setup: start every run from empty tables
-        self.db.execute("TRUNCATE trades, change_log, cdc_offset RESTART IDENTITY")
+        if reset:
+         self.db.execute(
+        "TRUNCATE trades, change_log, cdc_offset RESTART IDENTITY"
+    )
 
     def compute(self, symbol, quantity, price):
         return calc(quantity, price, self.bug)

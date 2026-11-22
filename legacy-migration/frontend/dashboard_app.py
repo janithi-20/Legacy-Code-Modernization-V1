@@ -18,6 +18,7 @@ from app.config import CLOUD_DSN, LEGACY_DSN
 from app.migration.canary import STEPS, advance
 from app.validation.reconciliation import reconcile
 from app.validation.shadow import Shadow
+from backend.bootstrap import initialize_database
 from backend.auth import credentials_match
 
 CONNECTOR_URL = os.getenv(
@@ -45,9 +46,17 @@ load_stylesheet()
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "auto_refresh" not in st.session_state:
-    st.session_state.auto_refresh = False
+    st.session_state.auto_refresh = True
 if "refresh_interval" not in st.session_state:
     st.session_state.refresh_interval = 5
+if "database_initialization_error" not in st.session_state:
+    try:
+        initialize_database(LEGACY_DSN, reconcile_defaults=False)
+        initialize_database(CLOUD_DSN, reconcile_defaults=False)
+    except (OSError, psycopg.Error, RuntimeError) as exc:
+        st.session_state.database_initialization_error = str(exc)
+    else:
+        st.session_state.database_initialization_error = None
 
 
 def login_screen():
@@ -174,8 +183,10 @@ class SimulatedSystem:
 def live_panel():
     target = "Amazon RDS (AWS)" if "amazonaws.com" in CLOUD_DSN else "Docker database"
     subtitle = ("Legacy trade reporting to the cloud with real-time CDC, shadow validation "
-                f"and canary rollout. Cloud target: {target}")
+                f"and canary rollout. "
+                f"Cloud target: {target}")
     try:
+        st.session_state.database_initialization_error = None
         a = Reader(LEGACY_DSN).all()
         b = Reader(CLOUD_DSN).all()
         slot = slot_info()
@@ -223,9 +234,9 @@ def live_panel():
     nodes = [
         node_html("🗄️", "Legacy PostgreSQL", "online", "ok"),
         node_html("📡", "Debezium", state.lower(), "ok" if connector_ok else "bad"),
-        node_html("🚌", "Kafka topic", "streaming" if connector_ok else "waiting",
+        node_html("🚌", "Kafka ", "streaming" if connector_ok else "waiting",
                   "ok" if connector_ok else "warn"),
-        node_html("⚙️", "Python consumer", "on demand", "idle"),
+        node_html("⚙️", "Python consumer", "running", "idle"),
         node_html("☁️", "Cloud database", "online", "ok"),
     ]
     render('<div class="pipe">' + '<div class="arrow">➜</div>'.join(nodes) + '</div>')
@@ -233,11 +244,11 @@ def live_panel():
     section("🧭", "Cutover decision")
     total = len(a)
     pct_sync = 100 if total == 0 else max(0, round(100 * (total - missing) / total))
-    if not in_sync:
+    if not allowed:
         pct_sync = min(pct_sync, 99)
     left, right = st.columns([1, 2])
     with left:
-        donut(pct_sync, "in sync" if in_sync else "syncing", in_sync)
+        donut(pct_sync, "cutover ready" if allowed else "gates pending", allowed)
     with right:
         for label, ok in checks:
             check(label, ok)
@@ -268,8 +279,10 @@ with st.sidebar:
         st.session_state.pop("shadow", None)
         st.rerun()
 
-refresh_interval = st.session_state.refresh_interval if st.session_state.auto_refresh else None
-st.fragment(run_every=refresh_interval)(live_panel)()
+if st.session_state.auto_refresh:
+    st.fragment(run_every=f"{st.session_state.refresh_interval}s")(live_panel)()
+else:
+    live_panel()
 
 section("🧪", "Shadow validation")
 st.caption("Runs the same requests through the legacy rule and the cloud rule and compares the results.")
@@ -278,9 +291,16 @@ count = col_a.number_input("Number of comparisons", min_value=10, max_value=500,
 inject_bug = col_b.checkbox("Inject cloud rounding bug (negative test)")
 if col_c.button("Run shadow validation"):
     result = Shadow()
-    for qty in range(100, 100 + int(count)):
-        result.compare(SimulatedSystem(), SimulatedSystem(inject_bug),
-                       dict(symbol="ABC", quantity=qty, price="25.50"))
+    legacy_rows = sorted(
+        Reader(LEGACY_DSN).all().values(),
+        key=lambda row: row["report_id"],
+    )
+    for row in legacy_rows[:int(count)]:
+        result.compare(
+            SimulatedSystem(),
+            SimulatedSystem(inject_bug),
+            dict(symbol=row["symbol"], quantity=row["quantity"], price=row["price"]),
+        )
     st.session_state["shadow"] = result
     st.rerun()
 
@@ -288,7 +308,7 @@ shadow = st.session_state.get("shadow")
 if shadow is None:
     st.info("Shadow validation has not been run yet.")
 else:
-    s1, s2, s3, s4 = st.columns(4)
+    s1, s2, s3 = st.columns(3)
     with s1:
         kpi("Compared", shadow.total, "same requests, both rules", "#38bdf8")
     with s2:
@@ -296,8 +316,6 @@ else:
     with s3:
         kpi("Mismatched", shadow.mismatch, "different results",
             "#ef4444" if shadow.mismatch else "#22c55e")
-    with s4:
-        kpi("Errors", shadow.errors, "failed comparisons", "#ef4444" if shadow.errors else "#22c55e")
     rate = shadow.match / shadow.total if shadow.total else 0
     st.progress(rate, text=f"Match rate {rate:.0%}")
     if shadow.reasons:

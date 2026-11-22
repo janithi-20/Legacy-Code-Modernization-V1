@@ -9,6 +9,7 @@ COPY app ./app
 COPY backend ./backend
 COPY frontend ./frontend
 COPY demo.py .
+COPY live_consumer.py .
 
 ENV PYTHONPATH=/app
 EXPOSE 8501

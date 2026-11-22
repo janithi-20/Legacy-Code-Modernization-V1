@@ -54,14 +54,21 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_HEAP_OPTS: "-Xms128m -Xmx384m"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 --list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
   connect:
     image: quay.io/debezium/connect:2.7
     container_name: connect
     restart: on-failure
     depends_on:
-      - kafka
-      - legacy_db
+      kafka:
+        condition: service_started
+      legacy_db:
+        condition: service_healthy
     ports:
       - "8083:8083"
     environment:
@@ -80,6 +87,25 @@ services:
       timeout: 5s
       retries: 30
 
+  cdc_consumer:
+    build:
+      context: ./legacy-migration
+    container_name: cdc_consumer
+    restart: on-failure
+    depends_on:
+      kafka:
+        condition: service_healthy
+      connect:
+        condition: service_healthy
+      cloud_db:
+        condition: service_healthy
+    environment:
+      LEGACY_DSN: postgresql://postgres:postgres@legacy_db:5432/legacy?connect_timeout=5
+      CLOUD_DSN: postgresql://postgres:postgres@cloud_db:5432/cloud?connect_timeout=5
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      DEBEZIUM_TOPIC: legacy.public.trades
+    command: ["python", "live_consumer.py"]
+
   dashboard:
     build:
       context: ./legacy-migration
@@ -89,6 +115,8 @@ services:
       legacy_db:
         condition: service_healthy
       cloud_db:
+        condition: service_healthy
+      connect:
         condition: service_healthy
     environment:
       LEGACY_DSN: postgresql://postgres:postgres@legacy_db:5432/legacy?connect_timeout=5

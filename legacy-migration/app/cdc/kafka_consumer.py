@@ -1,16 +1,33 @@
 import json
+import os
 import time
 from confluent_kafka import Consumer, TopicPartition, OFFSET_BEGINNING
 
-TOPIC = "legacy.public.trades"
+BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+TOPIC = os.getenv("DEBEZIUM_TOPIC", "legacy.public.trades")
 COLS = ["report_id", "symbol", "quantity", "price", "notional", "fee"]
 
 
 class CdcConsumer:
     def __init__(self, group, from_end=False, start=None):
-        self.c = Consumer({"bootstrap.servers": "localhost:9092",
+        self.c = Consumer({"bootstrap.servers": BOOTSTRAP_SERVERS,
                            "group.id": group,
                            "enable.auto.commit": False})
+        metadata = self.c.list_topics(topic=TOPIC, timeout=10)
+        topic_metadata = metadata.topics.get(TOPIC)
+        if topic_metadata is None or topic_metadata.error is not None:
+            self.c.close()
+            raise RuntimeError(
+                f"Kafka topic {TOPIC!r} is unavailable at "
+                f"{BOOTSTRAP_SERVERS}. Register or start the Debezium connector "
+                "before starting the CDC consumer."
+            )
+        if 0 not in topic_metadata.partitions:
+            self.c.close()
+            raise RuntimeError(
+                f"Kafka topic {TOPIC!r} has no partition 0 at "
+                f"{BOOTSTRAP_SERVERS}."
+            )
         tp = TopicPartition(TOPIC, 0)
         committed = self.c.committed([tp], timeout=10)[0].offset
         if start is not None:
@@ -35,8 +52,21 @@ class CdcConsumer:
             if m.value():
                 ev = json.loads(m.value())
                 after = ev.get("after")
-                if ev.get("op") in ("c", "u", "r") and after:
-                    if cloud.apply(ev["source"]["lsn"], {k: after[k] for k in COLS}):
+                before = ev.get("before")
+                op = ev.get("op")
+                lsn = ev["source"]["lsn"]
+
+                if op in ("c", "u", "r") and after:
+                    report_id = after.get("report_id", after.get("trade_id"))
+                    if report_id is None:
+                        self.c.commit(message=m, asynchronous=False)
+                        continue
+                    row = {k: after.get(k, after.get("trade_id") if k == "report_id" else None) for k in COLS}
+                    if cloud.apply(lsn, row):
+                        changed += 1
+                elif op == "d" and before:
+                    report_id = before.get("report_id", before.get("trade_id"))
+                    if report_id is not None and cloud.delete(lsn, report_id):
                         changed += 1
             self.c.commit(message=m, asynchronous=False)
         return changed
