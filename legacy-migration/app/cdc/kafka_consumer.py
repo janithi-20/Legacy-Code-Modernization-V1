@@ -52,8 +52,21 @@ class CdcConsumer:
             if m.value():
                 ev = json.loads(m.value())
                 after = ev.get("after")
-                if ev.get("op") in ("c", "u", "r") and after:
-                    if cloud.apply(ev["source"]["lsn"], {k: after[k] for k in COLS}):
+                before = ev.get("before")
+                op = ev.get("op")
+                lsn = ev["source"]["lsn"]
+
+                if op in ("c", "u", "r") and after:
+                    report_id = after.get("report_id", after.get("trade_id"))
+                    if report_id is None:
+                        self.c.commit(message=m, asynchronous=False)
+                        continue
+                    row = {k: after.get(k, after.get("trade_id") if k == "report_id" else None) for k in COLS}
+                    if cloud.apply(lsn, row):
+                        changed += 1
+                elif op == "d" and before:
+                    report_id = before.get("report_id", before.get("trade_id"))
+                    if report_id is not None and cloud.delete(lsn, report_id):
                         changed += 1
             self.c.commit(message=m, asynchronous=False)
         return changed

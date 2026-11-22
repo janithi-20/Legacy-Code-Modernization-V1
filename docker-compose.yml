@@ -54,6 +54,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_HEAP_OPTS: "-Xms128m -Xmx384m"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 --list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
   connect:
     image: quay.io/debezium/connect:2.7
@@ -88,6 +93,8 @@ services:
     container_name: cdc_consumer
     restart: on-failure
     depends_on:
+      kafka:
+        condition: service_healthy
       connect:
         condition: service_healthy
       cloud_db:

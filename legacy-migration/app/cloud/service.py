@@ -20,6 +20,14 @@ class Cloud(TradeStore):
         self._put(row, seq)
         return True
 
+    def delete(self, seq, report_id):
+        cur = self.db.execute("SELECT seq FROM trades WHERE report_id=%s",
+                              (report_id,)).fetchone()
+        if not cur or cur["seq"] > seq:
+            return False
+        self.db.execute("DELETE FROM trades WHERE report_id=%s", (report_id,))
+        return True
+
     def offset(self):
         r = self.db.execute("SELECT value FROM cdc_offset WHERE id=1").fetchone()
         return r["value"] if r else 0

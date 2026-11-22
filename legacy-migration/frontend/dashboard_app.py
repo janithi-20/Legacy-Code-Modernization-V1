@@ -46,7 +46,7 @@ load_stylesheet()
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "auto_refresh" not in st.session_state:
-    st.session_state.auto_refresh = False
+    st.session_state.auto_refresh = True
 if "refresh_interval" not in st.session_state:
     st.session_state.refresh_interval = 5
 if "database_initialization_error" not in st.session_state:
